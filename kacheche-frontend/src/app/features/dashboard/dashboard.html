@@ -1,0 +1,402 @@
+<section class="dashboard">
+
+  <!-- TITRE -->
+  <div class="page-heading">
+    <div>
+      <span class="eyebrow">GESTION FINANCIÈRE</span>
+      <h1>Tableau de bord</h1>
+      <p>Bienvenue sur Kacheche. Données financières en direct de la base de données.</p>
+    </div>
+
+    <div class="header-actions">
+      <button
+        mat-flat-button
+        color="primary"
+        class="refresh-button"
+        (click)="loadDashboard()"
+        [disabled]="isLoading"
+      >
+        <mat-icon>refresh</mat-icon>
+        Actualiser
+      </button>
+
+      <div class="report-button">
+        <mat-icon>calendar_today</mat-icon>
+        Exercice {{ fiscalYear }}
+      </div>
+    </div>
+  </div>
+
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="46"></mat-spinner>
+      <p>Chargement des indicateurs financiers depuis la base de données...</p>
+    </div>
+  } @else if (errorMessage) {
+    <div class="error-container">
+      <mat-icon>error_outline</mat-icon>
+      <p>{{ errorMessage }}</p>
+      <button mat-flat-button color="primary" (click)="loadDashboard()">
+        Réessayer
+      </button>
+    </div>
+  } @else {
+
+    <!-- STATISTIQUES -->
+    <div class="stats-grid">
+      @for (stat of stats; track stat.title) {
+        <mat-card class="stat-card">
+          <mat-card-content>
+            <div class="stat-top">
+              <div class="stat-icon" [class]="stat.color">
+                <mat-icon>{{ stat.icon }}</mat-icon>
+              </div>
+              <span class="stat-indicator">●</span>
+            </div>
+            <p class="stat-title">{{ stat.title }}</p>
+            <h2>{{ stat.value }}</h2>
+            <span class="stat-description">{{ stat.description }}</span>
+          </mat-card-content>
+        </mat-card>
+      }
+    </div>
+
+    <!-- CONTENU PRINCIPAL -->
+    <div class="dashboard-grid">
+
+      <!-- EXECUTION BUDGETAIRE -->
+      <mat-card class="content-card budget-card">
+        <mat-card-content>
+          <div class="section-heading">
+            <div>
+              <h3>Exécution budgétaire</h3>
+              <p>Suivi des allocations par département</p>
+            </div>
+            <span class="period-badge">Exercice {{ fiscalYear }}</span>
+          </div>
+
+          <div class="budget-summary">
+            <div>
+              <span>Budget global</span>
+              <strong>{{ formatAmount(totalBudgetAmount) }} {{ currency }}</strong>
+            </div>
+
+            <div>
+              <span>Montant dépensé</span>
+              <strong>{{ formatAmount(totalSpentAmount) }} {{ currency }}</strong>
+            </div>
+          </div>
+
+          <div class="progress-overall">
+            <div class="progress-label">
+              <span>Exécution globale</span>
+              <strong>{{ overallExecutionRate }} %</strong>
+            </div>
+
+            <div class="progress-track">
+              <div class="progress-fill overall-fill"
+                   [style.width.%]="overallExecutionRate">
+              </div>
+            </div>
+          </div>
+
+          <mat-divider></mat-divider>
+
+          <div class="department-progress">
+            @if (budgetExecution.length === 0) {
+              <div class="empty-state">
+                <mat-icon>info</mat-icon>
+                <p>Aucun département enregistré.</p>
+              </div>
+            } @else {
+              @for (item of budgetExecution; track item.department) {
+                <div class="department-item">
+                  <div class="department-info">
+                    <strong>{{ item.department }}</strong>
+                    <span>
+                      {{ formatAmount(item.spent) }} {{ currency }}
+                      / {{ formatAmount(item.allocated) }} {{ currency }}
+                    </span>
+                  </div>
+
+                  <div class="progress-track">
+                    <div
+                      class="progress-fill"
+                      [style.width.%]="item.percentage">
+                    </div>
+                  </div>
+
+                  <div class="percentage">
+                    {{ item.percentage }} %
+                  </div>
+                </div>
+              }
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <!-- ACTIVITES RECENTES -->
+      <mat-card class="content-card activity-card">
+        <mat-card-content>
+          <div class="section-heading">
+            <div>
+              <h3>Activités récentes</h3>
+              <p>Audit trail en temps réel</p>
+            </div>
+            <mat-icon class="heading-icon">history</mat-icon>
+          </div>
+
+          <div class="activity-list">
+            @if (recentActivities.length === 0) {
+              <div class="empty-state">
+                <mat-icon>history_toggle_off</mat-icon>
+                <p>Aucune activité enregistrée pour le moment.</p>
+              </div>
+            } @else {
+              @for (activity of recentActivities; track activity.revisionId) {
+                <div class="activity-item">
+                  <div class="activity-icon" [class]="activity.color">
+                    <mat-icon>{{ activity.icon }}</mat-icon>
+                  </div>
+
+                  <div class="activity-details">
+                    <strong>{{ activity.title }}</strong>
+                    <span>{{ activity.description }}</span>
+                    <small>
+                      {{ activity.user }} · {{ activity.time }}
+                    </small>
+                  </div>
+                </div>
+              }
+            }
+          </div>
+
+          <a mat-button color="primary"
+             routerLink="/audit"
+             class="view-history">
+            Consulter l'historique
+            <mat-icon>arrow_forward</mat-icon>
+          </a>
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <!-- INFORMATIONS COMPLEMENTAIRES -->
+
+    <!-- ==========================================
+         GRAPHIQUE DE RÉPARTITION DES DÉPENSES
+    =========================================== -->
+
+    <div class="dashboard-grid">
+
+      <mat-card class="content-card expense-chart-card">
+        <mat-card-content>
+
+          <div class="section-heading">
+            <div>
+              <h3>Répartition des dépenses</h3>
+              <p>Analyse des opérations par statut</p>
+            </div>
+
+            <mat-icon class="heading-icon">pie_chart</mat-icon>
+          </div>
+
+          @if (totalExpenses > 0) {
+
+            <div class="expense-chart-container">
+
+              <div
+                class="expense-donut"
+                [style.background]="expenseDonutBackground"
+              >
+                <div class="donut-center">
+                  <strong>{{ totalExpenses }}</strong>
+                  <span>Dépenses</span>
+                </div>
+              </div>
+
+              <div class="expense-legend">
+
+                <div class="legend-item">
+                  <span class="legend-color approved-color"></span>
+
+                  <div class="legend-description">
+                    <strong>Approuvées</strong>
+                    <small>
+                      {{ summary?.expenseStatus?.approved ?? 0 }}
+                      opération(s)
+                    </small>
+                  </div>
+
+                  <b>
+                    {{ approvedPercentage | number:'1.0-1' }}%
+                  </b>
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-color pending-color"></span>
+
+                  <div class="legend-description">
+                    <strong>En attente</strong>
+                    <small>
+                      {{ summary?.expenseStatus?.pending ?? 0 }}
+                      opération(s)
+                    </small>
+                  </div>
+
+                  <b>
+                    {{ pendingPercentage | number:'1.0-1' }}%
+                  </b>
+                </div>
+
+                <div class="legend-item">
+                  <span class="legend-color rejected-color"></span>
+
+                  <div class="legend-description">
+                    <strong>Rejetées</strong>
+                    <small>
+                      {{ summary?.expenseStatus?.rejected ?? 0 }}
+                      opération(s)
+                    </small>
+                  </div>
+
+                  <b>
+                    {{ rejectedPercentage | number:'1.0-1' }}%
+                  </b>
+                </div>
+
+              </div>
+
+            </div>
+
+          } @else {
+
+            <div class="empty-state">
+              <mat-icon>insert_chart_outlined</mat-icon>
+              <p>Aucune dépense enregistrée.</p>
+            </div>
+
+          }
+
+        </mat-card-content>
+      </mat-card>
+
+      <!-- COMPARAISON DES BUDGETS PAR DÉPARTEMENT -->
+
+      <mat-card class="content-card">
+        <mat-card-content>
+
+          <div class="section-heading">
+            <div>
+              <h3>Consommation budgétaire</h3>
+              <p>Progression par département</p>
+            </div>
+
+            <mat-icon class="heading-icon">bar_chart</mat-icon>
+          </div>
+
+          @if (budgetExecution.length > 0) {
+
+            @for (item of budgetExecution; track item.department) {
+
+              <div class="department-item">
+
+                <div class="department-info">
+                  <strong>{{ item.department }}</strong>
+
+                  <span>
+                    {{ item.percentage | number:'1.1-1' }}%
+                  </span>
+                </div>
+
+                <div class="progress-track">
+                  <div
+                    class="progress-fill"
+                    [style.width.%]="
+                      item.percentage > 100
+                        ? 100
+                        : item.percentage
+                    "
+                  ></div>
+                </div>
+
+                <div class="department-info chart-amounts">
+                  <span>
+                    Dépensé :
+                    {{ formatAmount(item.spent) }} {{ currency }}
+                  </span>
+
+                  <span>
+                    Alloué :
+                    {{ formatAmount(item.allocated) }} {{ currency }}
+                  </span>
+                </div>
+
+              </div>
+
+            }
+
+          } @else {
+
+            <div class="empty-state">
+              <mat-icon>bar_chart</mat-icon>
+              <p>Aucune donnée budgétaire disponible.</p>
+            </div>
+
+          }
+
+        </mat-card-content>
+      </mat-card>
+
+    </div>
+
+    <div class="bottom-grid">
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-icon pending">
+            <mat-icon>pending_actions</mat-icon>
+          </div>
+          <div>
+            <span>Dépenses en attente</span>
+            <h2>{{ summary?.expenseStatus?.pending ?? 0 }}</h2>
+            <small>Demandent une validation</small>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-icon approved">
+            <mat-icon>verified</mat-icon>
+          </div>
+          <div>
+            <span>Dépenses approuvées</span>
+            <h2>{{ summary?.expenseStatus?.approved ?? 0 }}</h2>
+            <small>Opérations validées</small>
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="info-card">
+        <mat-card-content>
+          <div class="info-icon rejected">
+            <mat-icon>cancel</mat-icon>
+          </div>
+          <div>
+            <span>Dépenses rejetées</span>
+            <h2>{{ summary?.expenseStatus?.rejected ?? 0 }}</h2>
+            <small>Opérations refusées</small>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+  }
+
+  <footer class="dashboard-footer">
+    Kacheche OpenIFMIS · Système de gestion des finances publiques
+  </footer>
+
+</section>

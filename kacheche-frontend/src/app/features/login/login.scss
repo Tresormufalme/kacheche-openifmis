@@ -1,0 +1,148 @@
+
+:host {
+  display: block;
+  min-height: 100%;
+}
+
+.login-page {
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  background:
+    radial-gradient(circle at top left, #dce9ff 0, transparent 35%),
+    linear-gradient(135deg, #f4f7fc, #e9eff8);
+}
+
+.login-container {
+  width: 100%;
+  max-width: 440px;
+  text-align: center;
+}
+
+.brand-section {
+  margin-bottom: 28px;
+}
+
+.brand-icon {
+  width: 68px;
+  height: 68px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  border-radius: 20px;
+  color: white;
+  background: linear-gradient(135deg, #173b72, #2864b8);
+  box-shadow: 0 10px 25px rgba(23, 59, 114, 0.2);
+
+  mat-icon {
+    width: 34px;
+    height: 34px;
+    font-size: 34px;
+  }
+}
+
+.brand-section h1 {
+  margin: 0;
+  color: #172b4d;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: 4px;
+}
+
+.brand-subtitle {
+  margin-top: 8px;
+  color: #718096;
+  font-size: 12px;
+  letter-spacing: 1px;
+}
+
+.login-card {
+  padding: 28px 22px;
+  border-radius: 18px;
+  text-align: left;
+  box-shadow: 0 15px 45px rgba(35, 55, 90, 0.09);
+}
+
+mat-card-header {
+  margin-bottom: 28px;
+}
+
+mat-card-title {
+  color: #172b4d;
+  font-size: 25px;
+  font-weight: 700;
+}
+
+mat-card-subtitle {
+  margin-top: 8px;
+  color: #718096;
+}
+
+.full-width {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.login-button {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 16px;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 600;
+
+  mat-icon {
+    margin-left: 10px;
+  }
+
+  .btn-text {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+.error-message {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px;
+  border-radius: 8px;
+  color: #b42318;
+  background: #fef3f2;
+  font-size: 13px;
+}
+
+.security-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 24px;
+  color: #64748b;
+  font-size: 13px;
+
+  mat-icon {
+    color: #16865b;
+    font-size: 19px;
+  }
+}
+
+.copyright {
+  margin-top: 20px;
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+@media (max-width: 480px) {
+  .login-page {
+    padding: 25px 12px;
+  }
+
+  .login-card {
+    padding: 22px 14px;
+  }
+}

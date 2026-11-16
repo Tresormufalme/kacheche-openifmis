@@ -1,0 +1,456 @@
+
+<div class="audit-page">
+
+  <!-- EN-TÊTE -->
+  <div class="page-header">
+    <div class="header-content">
+      <div class="header-icon">
+        <mat-icon>history</mat-icon>
+      </div>
+
+      <div>
+        <h1>Audit Trails</h1>
+        <p>
+          Traçabilité et historique des opérations financières de Kacheche.
+        </p>
+      </div>
+    </div>
+
+    <button
+      mat-stroked-button
+      color="primary"
+      (click)="refreshHistory()"
+      [disabled]="isLoadingHistory || isLoadingBudgets || isLoadingExpenses"
+    >
+      <mat-icon>refresh</mat-icon>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- CHOIX DU TYPE D'HISTORIQUE -->
+  <mat-card class="filter-card">
+
+    <div class="section-heading">
+      <mat-icon>manage_search</mat-icon>
+
+      <div>
+        <h2>Centre de traçabilité</h2>
+        <p>Choisissez le type d'opérations que vous souhaitez examiner.</p>
+      </div>
+    </div>
+
+    <div class="audit-mode-selector">
+
+      <button
+        type="button"
+        class="mode-button"
+        [class.active]="mode === 'budgets'"
+        (click)="onModeChange('budgets')"
+      >
+        <mat-icon>account_balance_wallet</mat-icon>
+        <span>
+          <strong>Historique des budgets</strong>
+          <small>Créations et modifications des budgets</small>
+        </span>
+      </button>
+
+      <button
+        type="button"
+        class="mode-button"
+        [class.active]="mode === 'expenses'"
+        (click)="onModeChange('expenses')"
+      >
+        <mat-icon>receipt_long</mat-icon>
+        <span>
+          <strong>Historique des dépenses</strong>
+          <small>Créations, approbations et rejets</small>
+        </span>
+      </button>
+
+    </div>
+
+    <!-- SÉLECTION BUDGET -->
+    @if (mode === 'budgets') {
+
+      <mat-form-field appearance="outline" class="item-select">
+        <mat-label>Budget à consulter</mat-label>
+
+        <mat-select
+          [value]="selectedBudgetId"
+          (selectionChange)="onBudgetSelected($event.value)"
+          [disabled]="isLoadingBudgets"
+        >
+          <mat-option [value]="null">
+            Sélectionner un budget
+          </mat-option>
+
+          @for (budget of budgets; track budget.id) {
+            <mat-option [value]="budget.id">
+              {{ budget.name }} — {{ budget.fiscalYear }}
+            </mat-option>
+          }
+        </mat-select>
+
+        @if (budgets.length === 0 && !isLoadingBudgets) {
+          <mat-hint>Aucun budget disponible.</mat-hint>
+        }
+      </mat-form-field>
+
+    }
+
+    <!-- SÉLECTION DÉPENSE -->
+    @if (mode === 'expenses') {
+
+      <mat-form-field appearance="outline" class="item-select">
+        <mat-label>Dépense à consulter</mat-label>
+
+        <mat-select
+          [value]="selectedExpenseId"
+          (selectionChange)="onExpenseSelected($event.value)"
+          [disabled]="isLoadingExpenses"
+        >
+          <mat-option [value]="null">
+            Sélectionner une dépense
+          </mat-option>
+
+          @for (expense of expenses; track expense.id) {
+            <mat-option [value]="expense.id">
+              #{{ expense.id }} — {{ expense.description }}
+              ({{ expense.amount | number:'1.2-2' }})
+            </mat-option>
+          }
+        </mat-select>
+
+        @if (expenses.length === 0 && !isLoadingExpenses) {
+          <mat-hint>Aucune dépense disponible.</mat-hint>
+        }
+      </mat-form-field>
+
+    }
+
+  </mat-card>
+
+  <!-- ERREUR -->
+  @if (errorMessage) {
+    <div class="error-message">
+      <mat-icon>error_outline</mat-icon>
+      {{ errorMessage }}
+    </div>
+  }
+
+  <!-- CHARGEMENT INITIAL -->
+  @if (
+    (mode === 'budgets' && isLoadingBudgets) ||
+    (mode === 'expenses' && isLoadingExpenses)
+  ) {
+    <div class="loading-container">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>
+        Chargement {{ mode === 'budgets' ? 'des budgets' : 'des dépenses' }}...
+      </p>
+    </div>
+  }
+
+  <!-- HISTORIQUE SÉLECTIONNÉ -->
+  @if (
+    (mode === 'budgets' && selectedBudgetId !== null) ||
+    (mode === 'expenses' && selectedExpenseId !== null)
+  ) {
+
+    @if (isLoadingHistory) {
+
+      <div class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Récupération de l'historique...</p>
+      </div>
+
+    } @else {
+
+      <!-- STATISTIQUES -->
+      <div class="statistics-grid">
+
+        <mat-card class="stat-card">
+          <div class="stat-icon revisions-icon">
+            <mat-icon>receipt_long</mat-icon>
+          </div>
+
+          <div>
+            <span>Nombre de révisions</span>
+            <strong>{{ totalRevisions }}</strong>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <div class="stat-icon users-icon">
+            <mat-icon>group</mat-icon>
+          </div>
+
+          <div>
+            <span>Utilisateurs concernés</span>
+            <strong>{{ totalActors }}</strong>
+          </div>
+        </mat-card>
+
+        <mat-card class="stat-card">
+          <div class="stat-icon history-icon">
+            <mat-icon>update</mat-icon>
+          </div>
+
+          <div>
+            <span>Dernière révision</span>
+            <strong>
+              @if (latestRevisionDate) {
+                {{ latestRevisionDate | date:'dd/MM/yyyy HH:mm' }}
+              } @else {
+                —
+              }
+            </strong>
+          </div>
+        </mat-card>
+
+      </div>
+
+      <!-- HISTORIQUE DES BUDGETS -->
+      @if (mode === 'budgets') {
+
+        <mat-card class="history-card">
+
+          <div class="history-header">
+            <div>
+              <h2>Historique du budget</h2>
+              <p>{{ selectedItemName }}</p>
+            </div>
+
+            <span class="revision-count">
+              {{ totalRevisions }} révision(s)
+            </span>
+          </div>
+
+          @if (budgetAuditEntries.length > 0) {
+
+            <div class="table-container">
+              <table mat-table [dataSource]="budgetAuditEntries">
+
+                <ng-container matColumnDef="revision">
+                  <th mat-header-cell *matHeaderCellDef>Révision</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <span class="revision-number">#{{ entry.revision }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="operation">
+                  <th mat-header-cell *matHeaderCellDef>Opération</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <span
+                      class="operation-badge"
+                      [ngClass]="getOperationClass(entry.operation)"
+                    >
+                      {{ getOperationLabel(entry.operation) }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="budgetName">
+                  <th mat-header-cell *matHeaderCellDef>Budget</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <div class="budget-info">
+                      <strong>{{ entry.budgetName }}</strong>
+                      <small>Année {{ entry.fiscalYear }}</small>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="amount">
+                  <th mat-header-cell *matHeaderCellDef>Montant</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <strong class="amount">
+                      {{ entry.totalAmount | number:'1.2-2' }}
+                      {{ entry.currency }}
+                    </strong>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="username">
+                  <th mat-header-cell *matHeaderCellDef>Utilisateur</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <div class="user-info">
+                      <mat-icon>account_circle</mat-icon>
+                      {{ entry.username }}
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="revisionDate">
+                  <th mat-header-cell *matHeaderCellDef>Date et heure</th>
+                  <td mat-cell *matCellDef="let entry">
+                    {{ entry.revisionDate | date:'dd/MM/yyyy HH:mm:ss' }}
+                  </td>
+                </ng-container>
+
+                <tr
+                  mat-header-row
+                  *matHeaderRowDef="budgetColumns"
+                ></tr>
+
+                <tr
+                  mat-row
+                  *matRowDef="let row; columns: budgetColumns"
+                ></tr>
+
+              </table>
+            </div>
+
+          } @else {
+
+            <div class="empty-state">
+              <mat-icon>history</mat-icon>
+              <h3>Aucun historique disponible</h3>
+              <p>Aucune révision enregistrée pour ce budget.</p>
+            </div>
+
+          }
+
+        </mat-card>
+
+      }
+
+      <!-- HISTORIQUE DES DÉPENSES -->
+      @if (mode === 'expenses') {
+
+        <mat-card class="history-card">
+
+          <div class="history-header">
+            <div>
+              <h2>Historique de la dépense</h2>
+              <p>{{ selectedItemName }}</p>
+            </div>
+
+            <span class="revision-count">
+              {{ totalRevisions }} révision(s)
+            </span>
+          </div>
+
+          @if (expenseAuditEntries.length > 0) {
+
+            <div class="table-container">
+              <table mat-table [dataSource]="expenseAuditEntries">
+
+                <ng-container matColumnDef="revision">
+                  <th mat-header-cell *matHeaderCellDef>Révision</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <span class="revision-number">#{{ entry.revision }}</span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="operation">
+                  <th mat-header-cell *matHeaderCellDef>Opération</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <span
+                      class="operation-badge"
+                      [ngClass]="getOperationClass(entry.operation)"
+                    >
+                      {{ getOperationLabel(entry.operation) }}
+                    </span>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="description">
+                  <th mat-header-cell *matHeaderCellDef>Description</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <div class="budget-info">
+                      <strong>{{ entry.description || 'Dépense supprimée' }}</strong>
+                      <small>{{ entry.budgetName || 'Budget indisponible' }}</small>
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="amount">
+                  <th mat-header-cell *matHeaderCellDef>Montant</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <strong class="amount">
+                      {{ entry.amount | number:'1.2-2' }}
+                    </strong>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="status">
+                  <th mat-header-cell *matHeaderCellDef>Statut</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <span
+                      class="status-badge"
+                      [ngClass]="(entry.status || '').toLowerCase()"
+                    >
+                      {{ getStatusLabel(entry.status) }}
+                    </span>
+
+                    @if (entry.rejectionReason) {
+                      <small class="rejection-reason">
+                        Motif : {{ entry.rejectionReason }}
+                      </small>
+                    }
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="username">
+                  <th mat-header-cell *matHeaderCellDef>Utilisateur</th>
+                  <td mat-cell *matCellDef="let entry">
+                    <div class="user-info">
+                      <mat-icon>account_circle</mat-icon>
+                      {{ entry.username }}
+                    </div>
+                  </td>
+                </ng-container>
+
+                <ng-container matColumnDef="revisionDate">
+                  <th mat-header-cell *matHeaderCellDef>Date et heure</th>
+                  <td mat-cell *matCellDef="let entry">
+                    {{ entry.revisionDate | date:'dd/MM/yyyy HH:mm:ss' }}
+                  </td>
+                </ng-container>
+
+                <tr
+                  mat-header-row
+                  *matHeaderRowDef="expenseColumns"
+                ></tr>
+
+                <tr
+                  mat-row
+                  *matRowDef="let row; columns: expenseColumns"
+                ></tr>
+
+              </table>
+            </div>
+
+          } @else {
+
+            <div class="empty-state">
+              <mat-icon>history</mat-icon>
+              <h3>Aucun historique disponible</h3>
+              <p>Aucune révision enregistrée pour cette dépense.</p>
+            </div>
+
+          }
+
+        </mat-card>
+
+      }
+
+    }
+
+  } @else if (
+    !isLoadingBudgets &&
+    !isLoadingExpenses
+  ) {
+
+    <div class="welcome-state">
+      <mat-icon>manage_history</mat-icon>
+      <h2>Historique des opérations</h2>
+      <p>
+        Sélectionnez un {{ mode === 'budgets' ? 'budget' : 'dépense' }}
+        ci-dessus pour consulter son historique de modifications.
+      </p>
+    </div>
+
+  }
+
+</div>

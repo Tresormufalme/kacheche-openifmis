@@ -1,0 +1,182 @@
+
+@if (!authService.isAuthenticated() || router.url === '/login') {
+
+  <router-outlet />
+
+} @else {
+
+  <mat-sidenav-container class="app-container">
+
+    <!-- MENU LATERAL -->
+    <mat-sidenav
+      class="sidebar"
+      mode="side"
+      opened
+      [fixedInViewport]="true"
+      aria-label="Menu principal de navigation">
+
+      <!-- IDENTITE DE LA PLATEFORME -->
+      <div class="brand">
+        <div class="brand-icon">
+          <mat-icon>account_balance</mat-icon>
+        </div>
+
+        <div class="brand-text">
+          <h2>KACHECHE</h2>
+          <span>OpenIFMIS Platform</span>
+        </div>
+      </div>
+
+      <div class="sidebar-divider"></div>
+
+      <div class="menu-label">MENU PRINCIPAL</div>
+
+      <mat-nav-list class="navigation-list">
+
+        <a
+          mat-list-item
+          routerLink="/"
+          routerLinkActive="active-link"
+          [routerLinkActiveOptions]="{ exact: true }">
+
+          <mat-icon matListItemIcon>dashboard</mat-icon>
+          <span matListItemTitle>Tableau de bord</span>
+        </a>
+
+        <a
+          mat-list-item
+          routerLink="/departments"
+          routerLinkActive="active-link">
+
+          <mat-icon matListItemIcon>business</mat-icon>
+          <span matListItemTitle>Départements</span>
+        </a>
+
+        <a
+          mat-list-item
+          routerLink="/budgets"
+          routerLinkActive="active-link">
+
+          <mat-icon matListItemIcon>account_balance_wallet</mat-icon>
+          <span matListItemTitle>Budgets</span>
+        </a>
+
+        <a
+          mat-list-item
+          routerLink="/expenses"
+          routerLinkActive="active-link">
+
+          <mat-icon matListItemIcon>receipt_long</mat-icon>
+          <span matListItemTitle>Dépenses</span>
+        </a>
+
+        @if (authService.isAdmin()) {
+
+          <div class="menu-section-divider"></div>
+
+          <div class="menu-label secondary-label">
+            CONTRÔLE ET SÉCURITÉ
+          </div>
+
+          <a
+            mat-list-item
+            routerLink="/audit"
+            routerLinkActive="active-link">
+
+            <mat-icon matListItemIcon>history</mat-icon>
+            <span matListItemTitle>Audit Trails</span>
+          </a>
+
+        }
+
+      </mat-nav-list>
+
+      <!-- PIED DU MENU -->
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-icon">
+          <mat-icon>verified_user</mat-icon>
+        </div>
+
+        <div>
+          <strong>Kacheche OpenIFMIS</strong>
+          <span>Financial Management System</span>
+        </div>
+
+        <div class="version-label">v1.0</div>
+      </div>
+
+    </mat-sidenav>
+
+    <!-- CONTENU PRINCIPAL -->
+    <mat-sidenav-content class="main-shell">
+
+      <!-- BARRE SUPERIEURE -->
+      <mat-toolbar class="topbar">
+
+        <div class="breadcrumb">
+          <span class="breadcrumb-muted">Administration</span>
+          <mat-icon>chevron_right</mat-icon>
+          <strong>Kacheche</strong>
+        </div>
+
+        <span class="toolbar-spacer"></span>
+
+        <div class="topbar-actions">
+
+          <button
+            mat-icon-button
+            class="notification-button"
+            aria-label="Notifications"
+            matTooltip="Notifications">
+
+            <mat-icon>notifications_none</mat-icon>
+            <span class="notification-indicator"></span>
+          </button>
+
+          <div class="topbar-divider"></div>
+
+          <!-- PROFIL UTILISATEUR -->
+          <div class="user-profile">
+
+            <div class="user-avatar">
+              <mat-icon>person</mat-icon>
+            </div>
+
+            <div class="user-details">
+              <strong>{{ authService.getUsername() }}</strong>
+              <span>{{ authService.getRole() }}</span>
+            </div>
+
+          </div>
+
+          <!-- DECONNEXION -->
+          <button
+            mat-button
+            class="logout-button"
+            (click)="logout()">
+
+            <mat-icon>logout</mat-icon>
+            <span class="logout-label">Déconnexion</span>
+
+          </button>
+
+        </div>
+
+      </mat-toolbar>
+
+      <!-- ZONE DE TRAVAIL -->
+      <main class="main-content">
+        <router-outlet />
+      </main>
+
+      <!-- PIED DE PAGE -->
+      <footer class="app-footer">
+        <span>© 2026 Kacheche OpenIFMIS</span>
+        <span>Financial Management System</span>
+      </footer>
+
+    </mat-sidenav-content>
+
+  </mat-sidenav-container>
+
+}

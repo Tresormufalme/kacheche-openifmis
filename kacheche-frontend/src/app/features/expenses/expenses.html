@@ -1,0 +1,436 @@
+
+<div class="expenses-page">
+
+  <!-- EN-TÊTE -->
+  <div class="page-header">
+    <div>
+      <span class="eyebrow">GESTION FINANCIÈRE</span>
+      <h1>Gestion des dépenses</h1>
+      <p>
+        Consultez, enregistrez et suivez les dépenses de vos départements.
+      </p>
+    </div>
+
+    <button
+      mat-flat-button
+      color="primary"
+      (click)="openCreateForm()"
+    >
+      <mat-icon>add</mat-icon>
+      Nouvelle dépense
+    </button>
+  </div>
+
+  <!-- MESSAGES -->
+  <div class="message success-message" *ngIf="successMessage">
+    <mat-icon>check_circle</mat-icon>
+    {{ successMessage }}
+    <button mat-icon-button (click)="successMessage = ''">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="message error-message" *ngIf="errorMessage">
+    <mat-icon>error_outline</mat-icon>
+    {{ errorMessage }}
+    <button mat-icon-button (click)="errorMessage = ''">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <!-- CARTES STATISTIQUES -->
+  <div class="statistics-grid">
+
+    <mat-card class="stat-card total-card">
+      <div class="stat-icon">
+        <mat-icon>receipt_long</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Total des dépenses</span>
+        <h2>{{ expenses.length }}</h2>
+        <span class="stat-description">Dépenses enregistrées</span>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card pending-card">
+      <div class="stat-icon">
+        <mat-icon>schedule</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">En attente</span>
+        <h2>{{ pendingCount }}</h2>
+        <span class="stat-description">À examiner</span>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card approved-card">
+      <div class="stat-icon">
+        <mat-icon>verified</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Approuvées</span>
+        <h2>{{ approvedCount }}</h2>
+        <span class="stat-description">Dépenses validées</span>
+      </div>
+    </mat-card>
+
+    <mat-card class="stat-card rejected-card">
+      <div class="stat-icon">
+        <mat-icon>cancel</mat-icon>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">Rejetées</span>
+        <h2>{{ rejectedCount }}</h2>
+        <span class="stat-description">Dépenses refusées</span>
+      </div>
+    </mat-card>
+
+  </div>
+
+  <!-- MONTANT APPROUVÉ -->
+  <mat-card class="amount-summary">
+    <div class="amount-icon">
+      <mat-icon>account_balance_wallet</mat-icon>
+    </div>
+    <div>
+      <span>Montant total des dépenses approuvées</span>
+      <h2>{{ totalApprovedAmount | number:'1.2-2' }}</h2>
+    </div>
+  </mat-card>
+
+  <!-- LISTE DES DÉPENSES -->
+  <mat-card class="table-card">
+
+    <div class="table-heading">
+      <div>
+        <h2>Liste des dépenses</h2>
+        <p>Historique des opérations financières enregistrées.</p>
+      </div>
+
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="loadExpenses()"
+        [disabled]="isLoading"
+      >
+        <mat-icon>refresh</mat-icon>
+        Actualiser
+      </button>
+    </div>
+
+    <!-- FILTRE -->
+    <div class="filters">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Filtrer par statut</mat-label>
+
+        <mat-select
+          [(ngModel)]="selectedStatus"
+          (selectionChange)="onStatusChange()"
+        >
+          <mat-option value="ALL">Tous les statuts</mat-option>
+          <mat-option value="PENDING">En attente</mat-option>
+          <mat-option value="APPROVED">Approuvées</mat-option>
+          <mat-option value="REJECTED">Rejetées</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <span class="results-count">
+        {{ filteredExpenses.length }}
+        résultat(s)
+      </span>
+
+    </div>
+
+    <!-- CHARGEMENT -->
+    <div class="loading-container" *ngIf="isLoading">
+      <mat-spinner diameter="42"></mat-spinner>
+      <p>Chargement des dépenses...</p>
+    </div>
+
+    <!-- TABLEAU -->
+    <div
+      class="table-container"
+      *ngIf="!isLoading && filteredExpenses.length > 0"
+    >
+
+      <table mat-table [dataSource]="filteredExpenses">
+
+        <!-- IDENTIFIANT -->
+        <ng-container matColumnDef="id">
+          <th mat-header-cell *matHeaderCellDef>ID</th>
+          <td mat-cell *matCellDef="let expense">
+            <span class="expense-id">#{{ expense.id }}</span>
+          </td>
+        </ng-container>
+
+        <!-- DESCRIPTION -->
+        <ng-container matColumnDef="description">
+          <th mat-header-cell *matHeaderCellDef>Description</th>
+          <td mat-cell *matCellDef="let expense">
+            <div class="expense-description">
+              <strong>{{ expense.description }}</strong>
+
+              <small *ngIf="expense.rejectionReason">
+                Motif : {{ expense.rejectionReason }}
+              </small>
+            </div>
+          </td>
+        </ng-container>
+
+        <!-- BUDGET -->
+        <ng-container matColumnDef="budget">
+          <th mat-header-cell *matHeaderCellDef>Budget associé</th>
+          <td mat-cell *matCellDef="let expense">
+            {{ expense.budgetName }}
+          </td>
+        </ng-container>
+
+        <!-- MONTANT -->
+        <ng-container matColumnDef="amount">
+          <th mat-header-cell *matHeaderCellDef>Montant</th>
+          <td mat-cell *matCellDef="let expense">
+            <strong class="amount-value">
+              {{ expense.amount | number:'1.2-2' }}
+            </strong>
+          </td>
+        </ng-container>
+
+        <!-- DATE -->
+        <ng-container matColumnDef="expenseDate">
+          <th mat-header-cell *matHeaderCellDef>Date</th>
+          <td mat-cell *matCellDef="let expense">
+            {{ expense.expenseDate | date:'dd/MM/yyyy' }}
+          </td>
+        </ng-container>
+
+        <!-- STATUT -->
+        <ng-container matColumnDef="status">
+          <th mat-header-cell *matHeaderCellDef>Statut</th>
+          <td mat-cell *matCellDef="let expense">
+            <span
+              class="status-badge"
+              [ngClass]="{
+                'status-pending': expense.status === 'PENDING',
+                'status-approved': expense.status === 'APPROVED',
+                'status-rejected': expense.status === 'REJECTED'
+              }"
+            >
+              <span class="status-dot"></span>
+              {{ getStatusLabel(expense.status) }}
+            </span>
+          </td>
+        </ng-container>
+
+        <!-- ACTIONS -->
+        <ng-container matColumnDef="actions">
+          <th mat-header-cell *matHeaderCellDef>Actions</th>
+
+          <td mat-cell *matCellDef="let expense">
+            <div class="action-buttons">
+
+              <button
+                mat-icon-button
+                color="primary"
+                matTooltip="Modifier"
+                *ngIf="expense.status === 'PENDING'"
+                (click)="openEditForm(expense)"
+              >
+                <mat-icon>edit</mat-icon>
+              </button>
+
+              <ng-container *ngIf="isAdmin && expense.status === 'PENDING'">
+
+                <button
+                  mat-icon-button
+                  color="primary"
+                  matTooltip="Approuver"
+                  (click)="approveExpense(expense)"
+                >
+                  <mat-icon>check_circle</mat-icon>
+                </button>
+
+                <button
+                  mat-icon-button
+                  color="warn"
+                  matTooltip="Rejeter"
+                  (click)="rejectExpense(expense)"
+                >
+                  <mat-icon>cancel</mat-icon>
+                </button>
+
+              </ng-container>
+
+              <button
+                mat-icon-button
+                color="warn"
+                matTooltip="Supprimer"
+                *ngIf="isAdmin"
+                (click)="deleteExpense(expense)"
+              >
+                <mat-icon>delete</mat-icon>
+              </button>
+
+            </div>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+
+        <tr
+          mat-row
+          *matRowDef="let row; columns: displayedColumns"
+        ></tr>
+
+      </table>
+
+    </div>
+
+    <!-- AUCUNE DÉPENSE -->
+    <div
+      class="empty-state"
+      *ngIf="!isLoading && filteredExpenses.length === 0"
+    >
+      <mat-icon>receipt_long</mat-icon>
+      <h3>Aucune dépense trouvée</h3>
+      <p>
+        Aucune dépense ne correspond au filtre sélectionné.
+      </p>
+
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="selectedStatus = 'ALL'; applyStatusFilter()"
+      >
+        Voir toutes les dépenses
+      </button>
+    </div>
+
+  </mat-card>
+
+  <!-- FORMULAIRE DE CRÉATION / MODIFICATION -->
+  <div class="form-overlay" *ngIf="showForm">
+
+    <mat-card class="expense-form-card">
+
+      <div class="form-header">
+        <div>
+          <span class="eyebrow">GESTION DES OPÉRATIONS</span>
+          <h2>
+            {{ selectedExpense ? 'Modifier la dépense' : 'Nouvelle dépense' }}
+          </h2>
+          <p>Complétez les informations ci-dessous.</p>
+        </div>
+
+        <button
+          mat-icon-button
+          matTooltip="Fermer"
+          (click)="closeForm()"
+          [disabled]="isSaving"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+
+      <form (ngSubmit)="saveExpense()">
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Description de la dépense</mat-label>
+          <input
+            matInput
+            name="description"
+            [(ngModel)]="description"
+            placeholder="Ex. Achat de fournitures de bureau"
+            required
+            minlength="3"
+            maxlength="150"
+          />
+          <mat-icon matPrefix>description</mat-icon>
+        </mat-form-field>
+
+        <div class="form-row">
+
+          <mat-form-field appearance="outline">
+            <mat-label>Montant</mat-label>
+            <input
+              matInput
+              type="number"
+              name="amount"
+              [(ngModel)]="amount"
+              min="0.01"
+              step="0.01"
+              placeholder="0.00"
+              required
+            />
+            <mat-icon matPrefix>payments</mat-icon>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Date de la dépense</mat-label>
+            <input
+              matInput
+              type="date"
+              name="expenseDate"
+              [(ngModel)]="expenseDate"
+              required
+            />
+            <mat-icon matPrefix>calendar_today</mat-icon>
+          </mat-form-field>
+
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Budget associé</mat-label>
+
+          <mat-select
+            name="budgetId"
+            [(ngModel)]="selectedBudgetId"
+            required
+          >
+            <mat-option
+              *ngFor="let budget of budgets"
+              [value]="budget.id"
+            >
+              {{ budget.name }}
+            </mat-option>
+          </mat-select>
+
+          <mat-icon matPrefix>account_balance</mat-icon>
+        </mat-form-field>
+
+        <div class="form-actions">
+
+          <button
+            mat-button
+            type="button"
+            (click)="closeForm()"
+            [disabled]="isSaving"
+          >
+            Annuler
+          </button>
+
+          <button
+            mat-flat-button
+            color="primary"
+            type="submit"
+            [disabled]="isSaving"
+          >
+            <mat-spinner
+              *ngIf="isSaving"
+              diameter="18"
+            ></mat-spinner>
+
+            <mat-icon *ngIf="!isSaving">save</mat-icon>
+
+            {{ isSaving ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
+
+        </div>
+
+      </form>
+
+    </mat-card>
+
+  </div>
+
+</div>

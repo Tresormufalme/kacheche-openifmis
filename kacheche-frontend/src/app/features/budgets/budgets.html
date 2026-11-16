@@ -1,0 +1,257 @@
+
+<div class="budgets-page">
+
+  <div class="page-header">
+    <div>
+      <h1>Gestion des budgets</h1>
+      <p>Consultez, gérez et suivez les budgets de Kacheche.</p>
+    </div>
+
+    <div class="header-actions">
+
+      <button
+        mat-stroked-button
+        color="primary"
+        (click)="loadBudgets()"
+        [disabled]="isLoading"
+      >
+        <mat-icon>refresh</mat-icon>
+        Actualiser
+      </button>
+
+      @if (isAdmin) {
+        <button
+          mat-flat-button
+          color="primary"
+          (click)="openCreateForm()"
+        >
+          <mat-icon>add</mat-icon>
+          Nouveau budget
+        </button>
+      }
+
+    </div>
+  </div>
+
+  @if (successMessage) {
+    <div class="success-message">
+      <mat-icon>check_circle</mat-icon>
+      {{ successMessage }}
+    </div>
+  }
+
+  @if (errorMessage) {
+    <div class="error-message">
+      <mat-icon>error</mat-icon>
+      {{ errorMessage }}
+    </div>
+  }
+
+  @if (showForm && isAdmin) {
+    <mat-card class="form-card">
+      <mat-card-content>
+        <app-budget-form
+          [budget]="selectedBudget"
+          (saved)="onBudgetSaved()"
+          (cancelled)="closeForm()"
+        />
+      </mat-card-content>
+    </mat-card>
+  }
+
+  <!-- Filtres -->
+  <mat-card class="filters-card">
+    <div class="filters-title">
+      <mat-icon>filter_list</mat-icon>
+      <h2>Filtrer les budgets</h2>
+    </div>
+
+    <div class="filters-content">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Année budgétaire</mat-label>
+
+        <mat-select
+          [(value)]="selectedYear"
+          (selectionChange)="applyFilters()"
+        >
+          <mat-option [value]="null">
+            Toutes les années
+          </mat-option>
+
+          @for (year of years; track year) {
+            <mat-option [value]="year">
+              {{ year }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Département</mat-label>
+
+        <mat-select
+          [(value)]="selectedDepartmentId"
+          (selectionChange)="applyFilters()"
+        >
+          <mat-option [value]="null">
+            Tous les départements
+          </mat-option>
+
+          @for (department of departments; track department.id) {
+            <mat-option [value]="department.id">
+              {{ department.name }}
+            </mat-option>
+          }
+        </mat-select>
+      </mat-form-field>
+
+      <button
+        mat-stroked-button
+        color="primary"
+        class="reset-button"
+        (click)="resetFilters()"
+        [disabled]="isLoading"
+      >
+        <mat-icon>filter_alt_off</mat-icon>
+        Réinitialiser
+      </button>
+
+    </div>
+  </mat-card>
+
+  <!-- Chargement -->
+  @if (isLoading) {
+    <div class="loading-container">
+      <mat-spinner diameter="45"></mat-spinner>
+      <p>Chargement des budgets...</p>
+    </div>
+  }
+
+  <!-- Tableau -->
+  @if (!isLoading) {
+
+    <mat-card class="table-card">
+
+      <div class="table-header">
+        <div>
+          <h2>Liste des budgets</h2>
+          <p>{{ budgets.length }} budget(s) trouvé(s)</p>
+        </div>
+      </div>
+
+      @if (budgets.length > 0) {
+
+        <div class="table-container">
+
+          <table mat-table [dataSource]="budgets">
+
+            <ng-container matColumnDef="id">
+              <th mat-header-cell *matHeaderCellDef>ID</th>
+              <td mat-cell *matCellDef="let budget">
+                #{{ budget.id }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Nom du budget</th>
+              <td mat-cell *matCellDef="let budget">
+                <strong>{{ budget.name }}</strong>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="fiscalYear">
+              <th mat-header-cell *matHeaderCellDef>Année</th>
+              <td mat-cell *matCellDef="let budget">
+                {{ budget.fiscalYear }}
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="department">
+              <th mat-header-cell *matHeaderCellDef>Département</th>
+              <td mat-cell *matCellDef="let budget">
+                <div class="department-info">
+                  <strong>{{ budget.department.name }}</strong>
+                  <small>{{ budget.department.code }}</small>
+                </div>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="totalAmount">
+              <th mat-header-cell *matHeaderCellDef>Montant</th>
+              <td mat-cell *matCellDef="let budget">
+                <strong class="amount">
+                  {{ budget.totalAmount | number:'1.2-2' }}
+                  {{ budget.currency }}
+                </strong>
+              </td>
+            </ng-container>
+
+            <ng-container matColumnDef="actions">
+              <th mat-header-cell *matHeaderCellDef>Actions</th>
+
+              <td mat-cell *matCellDef="let budget">
+
+                @if (isAdmin) {
+
+                  <button
+                    mat-icon-button
+                    color="primary"
+                    matTooltip="Modifier"
+                    (click)="openEditForm(budget)"
+                  >
+                    <mat-icon>edit</mat-icon>
+                  </button>
+
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    matTooltip="Supprimer"
+                    (click)="deleteBudget(budget)"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+
+                } @else {
+                  <span class="readonly-label">
+                    Lecture seule
+                  </span>
+                }
+
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+
+            <tr
+              mat-row
+              *matRowDef="let row; columns: displayedColumns"
+            ></tr>
+
+          </table>
+
+        </div>
+
+      } @else {
+
+        <div class="empty-state">
+          <mat-icon>account_balance_wallet</mat-icon>
+          <h3>Aucun budget trouvé</h3>
+          <p>Aucun budget ne correspond aux critères sélectionnés.</p>
+
+          <button
+            mat-stroked-button
+            color="primary"
+            (click)="resetFilters()"
+          >
+            Réinitialiser les filtres
+          </button>
+        </div>
+
+      }
+
+    </mat-card>
+
+  }
+
+</div>
