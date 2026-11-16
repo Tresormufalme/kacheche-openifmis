@@ -1,4 +1,3 @@
-
 # Kacheche OpenIFMIS
 
 **A Financial Management System Prototype**
@@ -36,6 +35,22 @@ The project was developed as part of a practical learning and application develo
 - Audit trails using Hibernate Envers.
 - Role-based access control.
 - REST API integration between Angular and Spring Boot.
+
+## Demo Credentials
+
+The following accounts are provided for testing the prototype:
+
+| Role | Username | Password |
+|---|---|---|
+| Administrator | `admin` | `Admin@123` |
+| Accountant | `comptable` | `Comptable@123` |
+
+**Important:** These are demonstration credentials only. They must not be used in a production environment. Change them before any real-world deployment.
+
+### Role Permissions
+
+- **ADMIN:** Full administrative access, including audit trail consultation, department and budget management, and expense approval or rejection.
+- **COMPTABLE:** Access to financial data and expense management, without administrative audit access or approval privileges.
 
 ## Architecture
 
