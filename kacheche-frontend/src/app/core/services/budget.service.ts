@@ -1,8 +1,8 @@
-
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
+import { API_URL } from '../config/api.config';
+import { BaseCrudService } from './base-crud.service';
 import {
   Budget,
   BudgetRequest
@@ -11,45 +11,17 @@ import {
 @Injectable({
   providedIn: 'root'
 })
-export class BudgetService {
+export class BudgetService extends BaseCrudService<Budget, BudgetRequest> {
 
-  private readonly http = inject(HttpClient);
-
-  private readonly apiUrl =
-    'http://localhost:8080/api/budgets';
-
-  getAll(): Observable<Budget[]> {
-    return this.http.get<Budget[]>(this.apiUrl);
-  }
-
-  getById(id: number): Observable<Budget> {
-    return this.http.get<Budget>(`${this.apiUrl}/${id}`);
-  }
-
-  create(request: BudgetRequest): Observable<Budget> {
-    return this.http.post<Budget>(this.apiUrl, request);
-  }
-
-  update(id: number, request: BudgetRequest): Observable<Budget> {
-    return this.http.put<Budget>(
-      `${this.apiUrl}/${id}`,
-      request
-    );
-  }
-
-  delete(id: number): Observable<void> {
-    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  constructor() {
+    super(`${API_URL}/budgets`);
   }
 
   getByFiscalYear(year: number): Observable<Budget[]> {
-    return this.http.get<Budget[]>(
-      `${this.apiUrl}/year/${year}`
-    );
+    return this.http.get<Budget[]>(`${this.apiUrl}/year/${year}`);
   }
 
   getByDepartment(departmentId: number): Observable<Budget[]> {
-    return this.http.get<Budget[]>(
-      `${this.apiUrl}/department/${departmentId}`
-    );
+    return this.http.get<Budget[]>(`${this.apiUrl}/department/${departmentId}`);
   }
 }

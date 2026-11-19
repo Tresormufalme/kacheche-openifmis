@@ -1,0 +1,55 @@
+.audit-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 20px 16px 24px;
+  border-bottom: 1px solid #e6edf5;
+}
+
+.audit-dialog-icon {
+  flex: 0 0 auto;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
+.audit-dialog-title {
+  flex: 1;
+  min-width: 0;
+
+  .eyebrow {
+    display: block;
+    color: #7c3aed;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h2 {
+    margin: 4px 0 0;
+    padding: 0;
+    overflow: hidden;
+    color: #172b4d;
+    font-size: 20px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.audit-dialog-content {
+  max-height: 68vh;
+  padding: 20px 24px !important;
+  background: #f8fafc;
+}
+
+.audit-dialog-actions {
+  padding: 12px 24px;
+  border-top: 1px solid #e6edf5;
+}

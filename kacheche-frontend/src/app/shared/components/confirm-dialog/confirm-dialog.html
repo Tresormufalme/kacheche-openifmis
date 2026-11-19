@@ -1,0 +1,49 @@
+<div class="confirm-header">
+
+  <div class="confirm-icon tone-{{ data.tone ?? 'primary' }}">
+    <mat-icon>{{ data.icon ?? 'help_outline' }}</mat-icon>
+  </div>
+
+  <div>
+    <h2 mat-dialog-title>{{ data.title }}</h2>
+    <p class="confirm-message">{{ data.message }}</p>
+  </div>
+
+</div>
+
+@if (data.reasonLabel) {
+  <mat-dialog-content class="confirm-content">
+
+    <mat-form-field appearance="outline" class="full-width">
+      <mat-label>{{ data.reasonLabel }}</mat-label>
+
+      <textarea
+        matInput
+        rows="3"
+        maxlength="500"
+        [formControl]="reason"
+        cdkFocusInitial></textarea>
+
+      @if (reason.hasError('required') && reason.touched) {
+        <mat-error>Ce champ est obligatoire.</mat-error>
+      }
+    </mat-form-field>
+
+  </mat-dialog-content>
+}
+
+<mat-dialog-actions align="end" class="confirm-actions">
+
+  <button mat-stroked-button type="button" [mat-dialog-close]="undefined">
+    Annuler
+  </button>
+
+  <button
+    mat-flat-button
+    type="button"
+    class="confirm-button tone-{{ data.tone ?? 'primary' }}"
+    (click)="confirm()">
+    {{ data.confirmLabel ?? 'Confirmer' }}
+  </button>
+
+</mat-dialog-actions>

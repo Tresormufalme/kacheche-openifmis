@@ -1,17 +1,14 @@
-
 package com.kacheche.entity;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Table;
 import org.hibernate.envers.Audited;
 
 @Audited
 @Entity
 @Table(name = "departments")
-public class Department {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Department extends BaseEntity {
 
     @Column(nullable = false, length = 100)
     private String name;
@@ -22,52 +19,25 @@ public class Department {
     @Column(length = 500)
     private String description;
 
-    // Constructeur sans argument requis par JPA
     public Department() {
     }
 
-    // Constructeur pour créer facilement un département
     public Department(String name, String code, String description) {
         this.name = name;
         this.code = code;
         this.description = description;
     }
 
-    //constructeur 03
     public Department(Long id) {
-        this.id = id;
+        setId(id);
     }
 
-    // Getters et setters
-    public Long getId() {
-        return id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 }

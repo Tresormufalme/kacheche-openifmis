@@ -1,0 +1,397 @@
+/* =====================================================================
+   Design system partagé Kacheche (classes préfixées "k-")
+   Utilisé par les pages Départements, Budgets, Dépenses et Audit.
+   ===================================================================== */
+
+:root {
+  --k-ink: #172b4d;
+  --k-text: #334155;
+  --k-muted: #64748b;
+  --k-line: #e6edf5;
+  --k-surface: #ffffff;
+  --k-bg: #f4f7fb;
+  --k-primary: #2878c7;
+  --k-primary-soft: #e0edfb;
+  --k-success: #16a34a;
+  --k-success-soft: #dcfce7;
+  --k-warning: #d97706;
+  --k-warning-soft: #fef3c7;
+  --k-danger: #dc2626;
+  --k-danger-soft: #fee2e2;
+  --k-audit: #7c3aed;
+  --k-audit-soft: #ede9fe;
+  --k-radius: 14px;
+  --k-shadow: 0 4px 18px rgba(35, 55, 90, 0.07);
+}
+
+/* ---------- PAGE ---------- */
+.k-page {
+  padding: 28px;
+  max-width: 1500px;
+  margin: 0 auto;
+}
+
+.k-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0;
+    color: var(--k-ink);
+    font-size: 26px;
+    font-weight: 750;
+    letter-spacing: -0.01em;
+  }
+
+  p {
+    margin: 6px 0 0;
+    color: var(--k-muted);
+    font-size: 14px;
+  }
+
+  button {
+    min-height: 42px;
+    border-radius: 10px;
+  }
+}
+
+.k-eyebrow {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--k-primary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.k-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---------- MESSAGES ---------- */
+.k-alert {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 12px 14px 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.4;
+
+  > span {
+    flex: 1;
+  }
+
+  button {
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    padding: 4px;
+    color: inherit;
+  }
+}
+
+.k-alert-success {
+  border: 1px solid #bbf7d0;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.k-alert-error {
+  border: 1px solid #fecaca;
+  color: #991b1b;
+  background: #fef2f2;
+}
+
+/* ---------- PANNEAUX ---------- */
+.k-panel {
+  margin-bottom: 22px;
+  overflow: hidden;
+  border: 1px solid var(--k-line);
+  border-radius: var(--k-radius);
+  background: var(--k-surface);
+  box-shadow: var(--k-shadow);
+}
+
+.k-panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--k-line);
+
+  h2 {
+    margin: 0;
+    color: var(--k-ink);
+    font-size: 17px;
+    font-weight: 700;
+  }
+
+  p {
+    margin: 4px 0 0;
+    color: var(--k-muted);
+    font-size: 13px;
+  }
+}
+
+.k-panel-body {
+  padding: 18px 22px;
+}
+
+.k-form-panel {
+  padding: 24px;
+  border-top: 3px solid var(--k-primary);
+}
+
+/* ---------- ÉTATS VIDES / CHARGEMENT ---------- */
+.k-state {
+  min-height: 240px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 28px;
+  color: var(--k-muted);
+  text-align: center;
+
+  > mat-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 48px;
+    color: #94a3b8;
+  }
+
+  h3 {
+    margin: 0;
+    color: var(--k-text);
+    font-size: 17px;
+  }
+
+  p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+/* ---------- FILTRES ---------- */
+.k-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 22px 0;
+
+  mat-form-field {
+    min-width: 230px;
+  }
+
+  .k-count {
+    margin-left: auto;
+    color: var(--k-muted);
+    font-size: 13px;
+  }
+}
+
+/* ---------- TABLEAUX ---------- */
+.k-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.k-table {
+  width: 100%;
+  min-width: 680px;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th {
+    padding: 13px 18px;
+    border-bottom: 1px solid var(--k-line);
+    color: var(--k-muted);
+    background: #f8fafc;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 14px 18px;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--k-text);
+    vertical-align: middle;
+  }
+
+  tbody tr {
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: #f8fbff;
+    }
+
+    &:last-child td {
+      border-bottom: 0;
+    }
+  }
+
+  strong {
+    color: var(--k-ink);
+    font-weight: 650;
+  }
+
+  small {
+    display: block;
+    margin-top: 2px;
+    color: var(--k-muted);
+    font-size: 12px;
+  }
+
+  .k-num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+.k-table-footer {
+  padding: 12px 22px;
+  border-top: 1px solid var(--k-line);
+  color: var(--k-muted);
+  font-size: 12.5px;
+}
+
+.k-id {
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.k-chip {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  color: #1d5fa8;
+  background: var(--k-primary-soft);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.k-readonly {
+  color: #94a3b8;
+  font-size: 12px;
+  font-style: italic;
+}
+
+.k-muted {
+  color: #94a3b8;
+}
+
+/* ---------- ACTIONS DE LIGNE (Modifier · Audit · Supprimer) ---------- */
+.k-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  white-space: nowrap;
+
+  .mat-mdc-icon-button {
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+  }
+}
+
+.k-btn-edit { color: var(--k-primary); }
+.k-btn-approve { color: var(--k-success); }
+.k-btn-reject,
+.k-btn-delete { color: var(--k-danger); }
+.k-btn-audit { color: var(--k-audit); }
+
+.k-btn-edit:hover { background: var(--k-primary-soft); }
+.k-btn-approve:hover { background: var(--k-success-soft); }
+.k-btn-reject:hover,
+.k-btn-delete:hover { background: var(--k-danger-soft); }
+.k-btn-audit:hover { background: var(--k-audit-soft); }
+
+/* ---------- FORMULAIRES ---------- */
+.k-form {
+  h2 {
+    margin: 0;
+    color: var(--k-ink);
+    font-size: 19px;
+    font-weight: 700;
+  }
+
+  .k-form-intro {
+    margin: 4px 0 20px;
+    color: var(--k-muted);
+    font-size: 13px;
+  }
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.k-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.k-form-error {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 11px 14px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  color: #991b1b;
+  background: #fef2f2;
+  font-size: 14px;
+}
+
+.k-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+
+  button {
+    min-height: 42px;
+    border-radius: 10px;
+  }
+
+  mat-spinner {
+    display: inline-block;
+    margin-right: 8px;
+  }
+}
+
+@media (max-width: 720px) {
+  .k-page {
+    padding: 16px;
+  }
+
+  .k-form-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- FENÊTRE D'AUDIT ---------- */
+.k-audit-dialog .mat-mdc-dialog-surface {
+  overflow: hidden;
+  border-radius: 20px;
+}

@@ -1,128 +1,81 @@
+import { Component, inject } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 
-import {
-  Component,
-  EventEmitter,
-  Input,
-  OnChanges,
-  Output,
-  inject
-} from '@angular/core';
-
-import {
-  FormBuilder,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
-
-import { Department } from '../../../shared/models/department.model';
-import { DepartmentService } from '../../../core/services/department.service';
-
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+
+import { DepartmentService } from '../../../core/services/department.service';
+import { BaseEntityForm } from '../../../shared/base/base-entity-form';
+import {
+  Department,
+  DepartmentRequest
+} from '../../../shared/models/department.model';
 
 @Component({
   selector: 'app-department-form',
   standalone: true,
   imports: [
     ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
     MatButtonModule,
-    MatIconModule
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressSpinnerModule
   ],
   templateUrl: './department-form.html',
   styleUrl: './department-form.scss'
 })
-export class DepartmentForm implements OnChanges {
+export class DepartmentForm extends BaseEntityForm<Department, DepartmentRequest> {
 
   private readonly fb = inject(FormBuilder);
-  private readonly departmentService = inject(DepartmentService);
 
-  @Input() department: Department | null = null;
+  protected override readonly service = inject(DepartmentService);
 
-  @Output() saved = new EventEmitter<void>();
-  @Output() cancelled = new EventEmitter<void>();
+  protected override readonly saveFailed =
+    'Une erreur est survenue lors de l’enregistrement du département.';
 
-  isSubmitting = false;
-  errorMessage = '';
-
-  departmentForm = this.fb.nonNullable.group({
+  // Mêmes règles que DepartmentRequest côté Spring Boot.
+  override readonly form = this.fb.nonNullable.group({
     name: ['', [
       Validators.required,
-      Validators.minLength(3),
-      Validators.maxLength(120)
+      Validators.minLength(2),
+      Validators.maxLength(100)
     ]],
     code: ['', [
       Validators.required,
-      Validators.pattern(/^[A-Z0-9-]+$/),
-      Validators.maxLength(20)
+      Validators.minLength(2),
+      Validators.maxLength(20),
+      Validators.pattern(/^[A-Z0-9_-]+$/)
     ]],
     description: ['', [
       Validators.maxLength(500)
     ]]
   });
 
-  ngOnChanges(): void {
-    if (this.department) {
-      this.departmentForm.patchValue({
-        name: this.department.name,
-        code: this.department.code,
-        description: this.department.description ?? ''
-      });
-    } else {
-      this.departmentForm.reset({
-        name: '',
-        code: '',
-        description: ''
-      });
-    }
-  }
-
-  submit(): void {
-
-    if (this.departmentForm.invalid) {
-      this.departmentForm.markAllAsTouched();
-      return;
-    }
-
-    this.isSubmitting = true;
-    this.errorMessage = '';
-
-    const request = this.departmentForm.getRawValue();
-
-    const operation = this.department
-      ? this.departmentService.update(this.department.id, request)
-      : this.departmentService.create(request);
-
-    operation.subscribe({
-
-      next: () => {
-        this.isSubmitting = false;
-        this.saved.emit();
-      },
-
-      error: (error) => {
-        console.error('Erreur lors de l’enregistrement du département :', error);
-
-        this.isSubmitting = false;
-
-        if (error.status === 409) {
-          this.errorMessage = 'Ce code de département existe déjà.';
-        } else if (error.status === 400) {
-          this.errorMessage = 'Les informations saisies sont invalides.';
-        } else if (error.status === 403) {
-          this.errorMessage = 'Vous n’avez pas les permissions nécessaires.';
-        } else {
-          this.errorMessage = 'Une erreur est survenue lors de l’enregistrement.';
-        }
-      }
-
+  protected override populate(department: Department | null): void {
+    this.form.reset({
+      name: department?.name ?? '',
+      code: department?.code ?? '',
+      description: department?.description ?? ''
     });
   }
 
-  cancel(): void {
-    this.cancelled.emit();
+  protected override toRequest(): DepartmentRequest {
+    const value = this.form.getRawValue();
+
+    return {
+      name: value.name.trim(),
+      code: value.code.trim(),
+      description: value.description.trim()
+    };
+  }
+
+  // Le code est toujours saisi en majuscules (règle imposée par le backend).
+  upperCaseCode(): void {
+    const control = this.form.controls.code;
+    control.setValue(control.value.toUpperCase(), { emitEvent: false });
   }
 }

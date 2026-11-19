@@ -1,28 +1,14 @@
-
-export interface BudgetAudit {
-  budgetId: number;
+// Réponse unique de GET /api/audit/{entité}/{id}.
+// Les champs métier de l'entité (name, amount, status...) sont
+// aplatis au même niveau que les champs techniques ci-dessous.
+export interface AuditEntry {
+  entityId: number;
   revision: number;
-  operation: string;
+  operation: string; // ADD | MOD | DEL (Hibernate Envers)
   revisionDate: string;
-  username: string;
-  budgetName: string;
-  fiscalYear: number;
-  totalAmount: number;
-  currency: 'USD' | 'CDF';
-  departmentId: number;
+  username: string | null;
+  [field: string]: unknown;
 }
 
-export interface ExpenseAudit {
-  expenseId: number;
-  revision: number;
-  operation: string;
-  revisionDate: string;
-  username: string;
-  description: string;
-  amount: number;
-  expenseDate: string;
-  status: 'PENDING' | 'APPROVED' | 'REJECTED' | null;
-  rejectionReason: string | null;
-  budgetId: number | null;
-  budgetName: string | null;
-}
+// Clé d'URL de l'entité = nom de sa table : departments, budgets, expenses...
+export type AuditEntityKey = string;

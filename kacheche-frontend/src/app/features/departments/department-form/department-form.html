@@ -1,77 +1,97 @@
+<div class="k-form">
 
-<div class="department-form">
+  <h2>{{ isEditMode ? 'Modifier le département' : 'Nouveau département' }}</h2>
 
-  <h2>
-    {{ department ? 'Modifier le département' : 'Nouveau département' }}
-  </h2>
+  <p class="k-form-intro">
+    {{ isEditMode
+      ? 'Les modifications sont enregistrées dans l’audit trail avec votre nom.'
+      : 'Renseignez les informations du nouveau département.' }}
+  </p>
 
-  <form [formGroup]="departmentForm" (ngSubmit)="submit()">
+  @if (errorMessage()) {
+    <div class="k-form-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
 
-    <mat-form-field appearance="outline">
-      <mat-label>Nom du département</mat-label>
-      <input matInput formControlName="name" placeholder="Ex. Direction des Finances">
+  <form [formGroup]="form" (ngSubmit)="submit()">
 
-      @if (departmentForm.controls.name.hasError('required') &&
-           departmentForm.controls.name.touched) {
-        <mat-error>Le nom est obligatoire.</mat-error>
-      }
+    <div class="k-form-row">
 
-      @if (departmentForm.controls.name.hasError('minlength')) {
-        <mat-error>Le nom doit contenir au moins 3 caractères.</mat-error>
-      }
-    </mat-form-field>
+      <mat-form-field appearance="outline">
+        <mat-label>Nom du département</mat-label>
+        <input
+          matInput
+          formControlName="name"
+          maxlength="100"
+          placeholder="Ex. Direction des Finances" />
 
-    <mat-form-field appearance="outline">
-      <mat-label>Code du département</mat-label>
-      <input matInput formControlName="code" placeholder="Ex. DFB-01">
+        @if (form.controls.name.hasError('required')) {
+          <mat-error>Le nom est obligatoire.</mat-error>
+        } @else if (form.controls.name.hasError('minlength')) {
+          <mat-error>Le nom doit contenir au moins 2 caractères.</mat-error>
+        }
+      </mat-form-field>
 
-      @if (departmentForm.controls.code.hasError('required') &&
-           departmentForm.controls.code.touched) {
-        <mat-error>Le code est obligatoire.</mat-error>
-      }
+      <mat-form-field appearance="outline">
+        <mat-label>Code du département</mat-label>
+        <input
+          matInput
+          formControlName="code"
+          maxlength="20"
+          placeholder="Ex. DFB-01"
+          (input)="upperCaseCode()" />
 
-      @if (departmentForm.controls.code.hasError('pattern')) {
-        <mat-error>Utilisez uniquement des majuscules, chiffres et tirets.</mat-error>
-      }
-    </mat-form-field>
+        <mat-hint>Majuscules, chiffres, tirets ou underscores.</mat-hint>
+
+        @if (form.controls.code.hasError('required')) {
+          <mat-error>Le code est obligatoire.</mat-error>
+        } @else if (form.controls.code.hasError('minlength')) {
+          <mat-error>Le code doit contenir au moins 2 caractères.</mat-error>
+        } @else if (form.controls.code.hasError('pattern')) {
+          <mat-error>Utilisez uniquement des majuscules, chiffres, tirets ou underscores.</mat-error>
+        }
+      </mat-form-field>
+
+    </div>
 
     <mat-form-field appearance="outline">
       <mat-label>Description</mat-label>
       <textarea
         matInput
-        rows="4"
+        rows="3"
+        maxlength="500"
         formControlName="description"
-        placeholder="Décrivez les responsabilités du département">
-      </textarea>
+        placeholder="Décrivez les responsabilités du département"></textarea>
     </mat-form-field>
 
-    @if (errorMessage) {
-      <div class="form-error">
-        <mat-icon>error_outline</mat-icon>
-        {{ errorMessage }}
-      </div>
-    }
-
-    <div class="form-actions">
+    <div class="k-form-actions">
 
       <button
         mat-stroked-button
         type="button"
         (click)="cancel()"
-        [disabled]="isSubmitting">
+        [disabled]="isSaving()">
         Annuler
       </button>
 
       <button
         mat-flat-button
-        color="primary"
         type="submit"
-        [disabled]="isSubmitting">
+        [disabled]="isSaving()">
 
-        <mat-icon>save</mat-icon>
+        @if (isSaving()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        }
 
-        {{ isSubmitting ? 'Enregistrement...' :
-           (department ? 'Enregistrer les modifications' : 'Créer le département') }}
+        @if (!isSaving()) {
+          <mat-icon>save</mat-icon>
+        }
+
+        {{ isSaving()
+          ? 'Enregistrement...'
+          : (isEditMode ? 'Enregistrer les modifications' : 'Créer le département') }}
 
       </button>
 

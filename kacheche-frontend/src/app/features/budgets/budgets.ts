@@ -1,259 +1,125 @@
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { DecimalPipe } from '@angular/common';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs';
 
-import {
-  Component,
-  OnInit,
-  ChangeDetectorRef
-} from '@angular/core';
-
-import { CommonModule } from '@angular/common';
+import { MatButtonModule } from '@angular/material/button';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 import { BudgetService } from '../../core/services/budget.service';
 import { DepartmentService } from '../../core/services/department.service';
-import { AuthService } from '../../core/services/auth.service';
-
-import { Budget } from '../../shared/models/budget.model';
+import { BaseCrudPage, CrudPageText } from '../../shared/base/base-crud-page';
+import { AuditButton } from '../../shared/components/audit-button/audit-button';
+import { Budget, BudgetRequest } from '../../shared/models/budget.model';
 import { Department } from '../../shared/models/department.model';
-
 import { BudgetForm } from './budget-form/budget-form';
-
-import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
-import { MatTooltipModule } from '@angular/material/tooltip';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
 
 @Component({
   selector: 'app-budgets',
   standalone: true,
   imports: [
-    CommonModule,
+    DecimalPipe,
+    AuditButton,
     BudgetForm,
     MatButtonModule,
-    MatCardModule,
+    MatFormFieldModule,
     MatIconModule,
     MatProgressSpinnerModule,
-    MatTableModule,
-    MatTooltipModule,
-    MatFormFieldModule,
-    MatSelectModule
+    MatSelectModule,
+    MatTooltipModule
   ],
   templateUrl: './budgets.html',
   styleUrl: './budgets.scss'
 })
-export class Budgets implements OnInit {
+export class Budgets extends BaseCrudPage<Budget, BudgetRequest> implements OnInit {
 
-  budgets: Budget[] = [];
+  protected override readonly service = inject(BudgetService);
+  private readonly departmentService = inject(DepartmentService);
 
-  departments: Department[] = [];
+  protected override readonly text: CrudPageText = {
+    loadFailed: 'Impossible de charger les budgets.',
+    created: 'Le budget a été créé avec succès.',
+    updated: 'Le budget a été modifié avec succès.',
+    deleted: 'Le budget a été supprimé avec succès.',
+    deleteTitle: 'Supprimer le budget',
+    deleteFailed:
+      'Impossible de supprimer ce budget. Il contient peut-être des dépenses.'
+  };
 
-  years: number[] = [];
+  readonly departments = signal<Department[]>([]);
+  readonly selectedYear = signal<number | null>(null);
+  readonly selectedDepartmentId = signal<number | null>(null);
 
-  displayedColumns: string[] = [
-    'id',
-    'name',
-    'fiscalYear',
-    'department',
-    'totalAmount',
-    'actions'
-  ];
+  // Années proposées dans le filtre : année courante ± 3.
+  readonly years: number[] = Array.from(
+    { length: 7 },
+    (_, index) => new Date().getFullYear() - 3 + index
+  );
 
-  isLoading = false;
-
-  errorMessage = '';
-  successMessage = '';
-
-  showForm = false;
-
-  selectedBudget: Budget | null = null;
-
-  selectedYear: number | null = null;
-  selectedDepartmentId: number | null = null;
-
-  constructor(
-    private budgetService: BudgetService,
-    private departmentService: DepartmentService,
-    private authService: AuthService,
-    private cdr: ChangeDetectorRef
-  ) {}
-
-  ngOnInit(): void {
-    this.loadBudgets();
-    this.loadFilterData();
+  protected override deleteMessage(budget: Budget): string {
+    return `Voulez-vous vraiment supprimer le budget « ${budget.name} » ? ` +
+      'Cette action est enregistrée dans l’audit trail.';
   }
 
-  get isAdmin(): boolean {
-    return this.authService.isAdmin();
+  override ngOnInit(): void {
+    super.ngOnInit();
+    this.loadDepartments();
   }
 
-  loadBudgets(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+  // Source des données : applique les filtres année / département.
+  protected override fetch(): Observable<Budget[]> {
 
-    this.budgetService.getAll().subscribe({
-      next: (budgets) => {
-        this.budgets = budgets;
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Erreur chargement budgets :', error);
-        this.errorMessage = 'Impossible de charger les budgets.';
-        this.isLoading = false;
-        this.cdr.markForCheck();
-      }
-    });
+    const year = this.selectedYear();
+    const departmentId = this.selectedDepartmentId();
+
+    if (year !== null && departmentId !== null) {
+      return this.service.getByFiscalYear(year).pipe(
+        map(budgets => budgets.filter(budget => budget.department.id === departmentId))
+      );
+    }
+
+    if (year !== null) {
+      return this.service.getByFiscalYear(year);
+    }
+
+    if (departmentId !== null) {
+      return this.service.getByDepartment(departmentId);
+    }
+
+    return this.service.getAll();
   }
 
-  loadFilterData(): void {
-    const currentYear = new Date().getFullYear();
-
-    this.years = Array.from(
-      { length: 7 },
-      (_, index) => currentYear - 3 + index
-    );
-
+  private loadDepartments(): void {
     this.departmentService.getAll().subscribe({
-      next: (departments) => {
-        this.departments = departments;
-        this.cdr.markForCheck();
-      },
+      next: (departments) => this.departments.set(departments),
       error: (error) => {
         console.error('Erreur chargement départements :', error);
-        this.errorMessage = 'Impossible de charger les départements.';
-        this.cdr.markForCheck();
+        this.errorMessage.set('Impossible de charger les départements.');
       }
     });
   }
 
-  applyFilters(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    // Filtrage combiné : année + département
-    if (
-      this.selectedYear !== null &&
-      this.selectedDepartmentId !== null
-    ) {
-      this.budgetService.getByFiscalYear(this.selectedYear).subscribe({
-        next: (budgets) => {
-          this.budgets = budgets.filter(
-            budget => budget.department.id === this.selectedDepartmentId
-          );
-
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        },
-        error: (error) => this.handleFilterError(error)
-      });
-
-      return;
-    }
-
-    // Filtrage par année
-    if (this.selectedYear !== null) {
-      this.budgetService.getByFiscalYear(this.selectedYear).subscribe({
-        next: (budgets) => {
-          this.budgets = budgets;
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        },
-        error: (error) => this.handleFilterError(error)
-      });
-
-      return;
-    }
-
-    // Filtrage par département
-    if (this.selectedDepartmentId !== null) {
-      this.budgetService.getByDepartment(this.selectedDepartmentId).subscribe({
-        next: (budgets) => {
-          this.budgets = budgets;
-          this.isLoading = false;
-          this.cdr.markForCheck();
-        },
-        error: (error) => this.handleFilterError(error)
-      });
-
-      return;
-    }
-
-    this.loadBudgets();
+  onYearChange(year: number | null): void {
+    this.selectedYear.set(year);
+    this.load();
   }
 
-  private handleFilterError(error: unknown): void {
-    console.error('Erreur filtrage budgets :', error);
-
-    this.errorMessage = 'Une erreur est survenue lors du filtrage des budgets.';
-    this.isLoading = false;
-
-    this.cdr.markForCheck();
+  onDepartmentChange(departmentId: number | null): void {
+    this.selectedDepartmentId.set(departmentId);
+    this.load();
   }
 
   resetFilters(): void {
-    this.selectedYear = null;
-    this.selectedDepartmentId = null;
-
-    this.loadBudgets();
+    this.selectedYear.set(null);
+    this.selectedDepartmentId.set(null);
+    this.load();
   }
 
-  openCreateForm(): void {
-    this.selectedBudget = null;
-    this.showForm = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-  }
-
-  openEditForm(budget: Budget): void {
-    this.selectedBudget = budget;
-    this.showForm = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-  }
-
-  closeForm(): void {
-    this.showForm = false;
-    this.selectedBudget = null;
-  }
-
-  onBudgetSaved(): void {
-    this.showForm = false;
-    this.selectedBudget = null;
-
-    this.successMessage = 'Le budget a été enregistré avec succès.';
-
-    this.loadBudgets();
-  }
-
-  deleteBudget(budget: Budget): void {
-    if (!this.isAdmin) {
-      return;
-    }
-
-    const confirmation = confirm(
-      `Voulez-vous vraiment supprimer le budget "${budget.name}" ?`
-    );
-
-    if (!confirmation) {
-      return;
-    }
-
-    this.budgetService.delete(budget.id).subscribe({
-      next: () => {
-        this.successMessage = 'Budget supprimé avec succès.';
-        this.errorMessage = '';
-        this.applyFilters();
-      },
-      error: (error) => {
-        console.error('Erreur suppression budget :', error);
-
-        this.errorMessage = 'Impossible de supprimer ce budget.';
-        this.successMessage = '';
-
-        this.cdr.markForCheck();
-      }
-    });
+  get hasFilters(): boolean {
+    return this.selectedYear() !== null || this.selectedDepartmentId() !== null;
   }
 }

@@ -1,7 +1,8 @@
+import { Versioned } from './base.model';
+
 export type ExpenseStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
-export interface Expense {
-  id: number;
+export interface Expense extends Versioned {
   description: string;
   amount: number;
   expenseDate: string;
@@ -18,8 +19,4 @@ export interface ExpenseRequest {
   amount: number;
   expenseDate: string;
   budgetId: number;
-}
-
-export interface ExpenseRejectionRequest {
-  reason: string;
 }

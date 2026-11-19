@@ -1,19 +1,20 @@
+import { Versioned } from './base.model';
+import { DepartmentSummary } from './department.model';
 
-import { Department } from './department.model';
+export type Currency = 'USD' | 'CDF';
 
-export interface Budget {
-  id: number;
+export interface Budget extends Versioned {
   name: string;
   fiscalYear: number;
   totalAmount: number;
-  currency: 'USD' | 'CDF';
-  department: Department;
+  currency: Currency;
+  department: DepartmentSummary;
 }
 
 export interface BudgetRequest {
   name: string;
   fiscalYear: number;
   totalAmount: number;
-  currency: 'USD' | 'CDF';
+  currency: Currency;
   departmentId: number;
 }

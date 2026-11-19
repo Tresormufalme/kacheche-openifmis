@@ -1,4 +1,3 @@
-
 package com.kacheche.dto;
 
 import jakarta.validation.constraints.NotBlank;
@@ -21,7 +20,9 @@ public record DepartmentRequest(
 
         @Size(max = 500,
                 message = "La description ne peut pas dépasser 500 caractères.")
-        String description
+        String description,
 
-) {
+        Long version
+
+) implements VersionedRequest {
 }

@@ -1,355 +1,163 @@
-
-import {
-  Component,
-  OnInit,
-  ChangeDetectorRef
-} from '@angular/core';
-
-import { CommonModule } from '@angular/common';
-
-import { AuditService } from '../../core/services/audit.service';
-import { BudgetService } from '../../core/services/budget.service';
-import { ExpenseService } from '../../core/services/expense';
-
-import {
-  BudgetAudit,
-  ExpenseAudit
-} from '../../shared/models/audit.model';
-
-import { Budget } from '../../shared/models/budget.model';
-import { Expense } from '../../shared/models/expense.model';
+import { Component, OnInit, inject, signal } from '@angular/core';
+import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Observable, map } from 'rxjs';
 
 import { MatButtonModule } from '@angular/material/button';
-import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon';
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTableModule } from '@angular/material/table';
 import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatInputModule } from '@angular/material/input';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatTooltipModule } from '@angular/material/tooltip';
 
-type AuditMode = 'budgets' | 'expenses';
+import { BudgetService } from '../../core/services/budget.service';
+import { DepartmentService } from '../../core/services/department.service';
+import { ExpenseService } from '../../core/services/expense';
+import { describeError } from '../../core/utils/http-error';
+import { AUDIT_ENTITIES } from '../../shared/audit/audit-config';
+import { AuditTimeline } from '../../shared/components/audit-timeline/audit-timeline';
 
+interface AuditTarget {
+  id: number;
+  label: string;
+}
+
+/**
+ * Centre de traçabilité : consulter l'audit trail de n'importe quel élément,
+ * y compris un élément supprimé (en saisissant son identifiant).
+ * Le détail est affiché par le même composant que le bouton "Audit" des listes.
+ */
 @Component({
   selector: 'app-audit',
   standalone: true,
   imports: [
-    CommonModule,
+    ReactiveFormsModule,
+    AuditTimeline,
     MatButtonModule,
-    MatCardModule,
-    MatIconModule,
-    MatProgressSpinnerModule,
-    MatTableModule,
     MatFormFieldModule,
-    MatSelectModule,
-    MatTooltipModule
+    MatIconModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatSelectModule
   ],
   templateUrl: './audit.html',
   styleUrl: './audit.scss'
 })
 export class Audit implements OnInit {
 
-  // Mode d'affichage
-  mode: AuditMode = 'budgets';
+  private readonly departmentService = inject(DepartmentService);
+  private readonly budgetService = inject(BudgetService);
+  private readonly expenseService = inject(ExpenseService);
 
-  // Données disponibles
-  budgets: Budget[] = [];
-  expenses: Expense[] = [];
+  // Types d'éléments consultables (issus de la configuration d'audit).
+  readonly entities = Object.entries(AUDIT_ENTITIES).map(([key, config]) => ({
+    key,
+    ...config
+  }));
 
-  // Historiques
-  budgetAuditEntries: BudgetAudit[] = [];
-  expenseAuditEntries: ExpenseAudit[] = [];
+  readonly entity = signal<string>(this.entities[0].key);
+  readonly targets = signal<AuditTarget[]>([]);
+  readonly selectedId = signal<number | null>(null);
 
-  // Sélections
-  selectedBudgetId: number | null = null;
-  selectedExpenseId: number | null = null;
+  readonly isLoadingTargets = signal(false);
+  readonly errorMessage = signal('');
 
-  // Chargement
-  isLoadingBudgets = false;
-  isLoadingExpenses = false;
-  isLoadingHistory = false;
+  // Saisie directe d'un identifiant (utile pour un élément supprimé).
+  readonly manualId = new FormControl<number | null>(null, [
+    Validators.required,
+    Validators.min(1)
+  ]);
 
-  errorMessage = '';
+  // Liste déroulante de chaque type d'élément.
+  private readonly loaders: Record<string, () => Observable<AuditTarget[]>> = {
 
-  // Colonnes du tableau des budgets
-  budgetColumns: string[] = [
-    'revision',
-    'operation',
-    'budgetName',
-    'amount',
-    'username',
-    'revisionDate'
-  ];
+    departments: () => this.departmentService.getAll().pipe(
+      map(items => items.map(item => ({
+        id: item.id,
+        label: `${item.name} (${item.code})`
+      })))
+    ),
 
-  // Colonnes du tableau des dépenses
-  expenseColumns: string[] = [
-    'revision',
-    'operation',
-    'description',
-    'amount',
-    'status',
-    'username',
-    'revisionDate'
-  ];
+    budgets: () => this.budgetService.getAll().pipe(
+      map(items => items.map(item => ({
+        id: item.id,
+        label: `${item.name} — ${item.fiscalYear}`
+      })))
+    ),
 
-  constructor(
-    private auditService: AuditService,
-    private budgetService: BudgetService,
-    private expenseService: ExpenseService,
-    private cdr: ChangeDetectorRef
-  ) {}
+    expenses: () => this.expenseService.getAll().pipe(
+      map(items => items.map(item => ({
+        id: item.id,
+        label: `#${item.id} — ${item.description}`
+      })))
+    )
+  };
 
   ngOnInit(): void {
-    this.loadBudgets();
-    this.loadExpenses();
+    this.loadTargets();
   }
 
-  // Chargement des budgets
-  loadBudgets(): void {
-    this.isLoadingBudgets = true;
-
-    this.budgetService.getAll().subscribe({
-      next: (budgets) => {
-        this.budgets = budgets;
-        this.isLoadingBudgets = false;
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Erreur chargement budgets :', error);
-        this.errorMessage = 'Impossible de charger les budgets.';
-        this.isLoadingBudgets = false;
-        this.cdr.markForCheck();
-      }
-    });
+  get currentConfig() {
+    return AUDIT_ENTITIES[this.entity()];
   }
 
-  // Chargement des dépenses
-  loadExpenses(): void {
-    this.isLoadingExpenses = true;
+  selectEntity(key: string): void {
 
-    this.expenseService.getAll().subscribe({
-      next: (expenses) => {
-        this.expenses = expenses;
-        this.isLoadingExpenses = false;
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Erreur chargement dépenses :', error);
-        this.errorMessage = 'Impossible de charger les dépenses.';
-        this.isLoadingExpenses = false;
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
-  // Changement de catégorie d'audit
-  onModeChange(mode: AuditMode): void {
-    this.mode = mode;
-
-    this.selectedBudgetId = null;
-    this.selectedExpenseId = null;
-
-    this.budgetAuditEntries = [];
-    this.expenseAuditEntries = [];
-
-    this.errorMessage = '';
-
-    this.cdr.markForCheck();
-  }
-
-  // Sélection d'un budget
-  onBudgetSelected(budgetId: number | null): void {
-    this.selectedBudgetId = budgetId;
-    this.budgetAuditEntries = [];
-    this.errorMessage = '';
-
-    if (budgetId === null) {
-      this.cdr.markForCheck();
+    if (key === this.entity()) {
       return;
     }
 
-    this.loadBudgetHistory(budgetId);
+    this.entity.set(key);
+    this.selectedId.set(null);
+    this.manualId.reset();
+
+    this.loadTargets();
   }
 
-  // Sélection d'une dépense
-  onExpenseSelected(expenseId: number | null): void {
-    this.selectedExpenseId = expenseId;
-    this.expenseAuditEntries = [];
-    this.errorMessage = '';
+  selectTarget(id: number | null): void {
+    this.selectedId.set(id);
+    this.manualId.reset();
+  }
 
-    if (expenseId === null) {
-      this.cdr.markForCheck();
+  openManualId(): void {
+
+    if (this.manualId.invalid || this.manualId.value === null) {
+      this.manualId.markAsTouched();
       return;
     }
 
-    this.loadExpenseHistory(expenseId);
+    this.selectedId.set(Number(this.manualId.value));
   }
 
-  // Historique d'un budget
-  loadBudgetHistory(budgetId: number): void {
-    this.isLoadingHistory = true;
-    this.errorMessage = '';
+  private loadTargets(): void {
 
-    this.auditService.getBudgetHistory(budgetId).subscribe({
-      next: (entries) => {
-        this.budgetAuditEntries = entries;
-        this.isLoadingHistory = false;
-        this.cdr.markForCheck();
+    const loader = this.loaders[this.entity()];
+
+    this.targets.set([]);
+    this.errorMessage.set('');
+
+    if (!loader) {
+      return;
+    }
+
+    this.isLoadingTargets.set(true);
+
+    loader().subscribe({
+
+      next: (targets) => {
+        this.targets.set(targets);
+        this.isLoadingTargets.set(false);
       },
+
       error: (error) => {
-        console.error('Erreur historique budget :', error);
-        this.errorMessage =
-          'Impossible de récupérer l’historique de ce budget.';
-        this.isLoadingHistory = false;
-        this.cdr.markForCheck();
+        console.error('Erreur chargement de la liste d’audit :', error);
+
+        this.errorMessage.set(
+          describeError(error, 'Impossible de charger la liste des éléments.')
+        );
+
+        this.isLoadingTargets.set(false);
       }
+
     });
-  }
-
-  // Historique d'une dépense
-  loadExpenseHistory(expenseId: number): void {
-    this.isLoadingHistory = true;
-    this.errorMessage = '';
-
-    this.auditService.getExpenseHistory(expenseId).subscribe({
-      next: (entries) => {
-        this.expenseAuditEntries = entries;
-        this.isLoadingHistory = false;
-        this.cdr.markForCheck();
-      },
-      error: (error) => {
-        console.error('Erreur historique dépense :', error);
-        this.errorMessage =
-          'Impossible de récupérer l’historique de cette dépense.';
-        this.isLoadingHistory = false;
-        this.cdr.markForCheck();
-      }
-    });
-  }
-
-  // Actualisation
-  refreshHistory(): void {
-    this.errorMessage = '';
-
-    if (this.mode === 'budgets') {
-      if (this.selectedBudgetId !== null) {
-        this.loadBudgetHistory(this.selectedBudgetId);
-      } else {
-        this.loadBudgets();
-      }
-    } else {
-      if (this.selectedExpenseId !== null) {
-        this.loadExpenseHistory(this.selectedExpenseId);
-      } else {
-        this.loadExpenses();
-      }
-    }
-  }
-
-  // Libellé d'une opération
-  getOperationLabel(operation: string): string {
-    switch (operation.toUpperCase()) {
-      case 'ADD':
-      case 'CREATE':
-      case 'INSERT':
-        return 'Création';
-
-      case 'MOD':
-      case 'UPDATE':
-        return 'Modification';
-
-      case 'DEL':
-      case 'DELETE':
-        return 'Suppression';
-
-      default:
-        return operation;
-    }
-  }
-
-  // Classe CSS d'une opération
-  getOperationClass(operation: string): string {
-    switch (operation.toUpperCase()) {
-      case 'ADD':
-      case 'CREATE':
-      case 'INSERT':
-        return 'created';
-
-      case 'MOD':
-      case 'UPDATE':
-        return 'updated';
-
-      case 'DEL':
-      case 'DELETE':
-        return 'deleted';
-
-      default:
-        return 'unknown';
-    }
-  }
-
-  // Libellé du statut d'une dépense
-  getStatusLabel(status: string | null): string {
-    switch (status) {
-      case 'PENDING':
-        return 'En attente';
-
-      case 'APPROVED':
-        return 'Approuvée';
-
-      case 'REJECTED':
-        return 'Rejetée';
-
-      default:
-        return 'Non disponible';
-    }
-  }
-
-  // Historique actuellement affiché
-  get totalRevisions(): number {
-    return this.mode === 'budgets'
-      ? this.budgetAuditEntries.length
-      : this.expenseAuditEntries.length;
-  }
-
-  // Nombre d'utilisateurs concernés
-  get totalActors(): number {
-    const usernames = this.mode === 'budgets'
-      ? this.budgetAuditEntries.map(entry => entry.username)
-      : this.expenseAuditEntries.map(entry => entry.username);
-
-    return new Set(usernames.filter(Boolean)).size;
-  }
-
-  // Date de la dernière révision
-  get latestRevisionDate(): string | null {
-    const dates = this.mode === 'budgets'
-      ? this.budgetAuditEntries.map(entry => entry.revisionDate)
-      : this.expenseAuditEntries.map(entry => entry.revisionDate);
-
-    if (dates.length === 0) {
-      return null;
-    }
-
-    return dates.reduce((latest, current) =>
-      new Date(current).getTime() > new Date(latest).getTime()
-        ? current
-        : latest
-    );
-  }
-
-  // Nom de l'élément sélectionné
-  get selectedItemName(): string {
-    if (this.mode === 'budgets') {
-      return this.budgets.find(
-        budget => budget.id === this.selectedBudgetId
-      )?.name ?? '';
-    }
-
-    const expense = this.expenses.find(
-      item => item.id === this.selectedExpenseId
-    );
-
-    return expense?.description ?? '';
   }
 }

@@ -1,0 +1,199 @@
+@if (isLoading()) {
+
+  <div class="state">
+    <mat-spinner diameter="38"></mat-spinner>
+    <p>Chargement de l’historique...</p>
+  </div>
+
+} @else if (errorMessage()) {
+
+  <div class="state state-error">
+    <mat-icon>error_outline</mat-icon>
+    <p>{{ errorMessage() }}</p>
+
+    <button mat-stroked-button type="button" (click)="load()">
+      <mat-icon>refresh</mat-icon>
+      Réessayer
+    </button>
+  </div>
+
+} @else if (revisions().length === 0) {
+
+  <div class="state">
+    <mat-icon>history_toggle_off</mat-icon>
+    <h3>Aucune opération enregistrée</h3>
+    <p>
+      Cet élément n’a pas encore d’historique. Les éléments créés avant
+      l’activation de l’audit n’en ont pas.
+    </p>
+  </div>
+
+} @else {
+
+  <!-- RÉSUMÉ -->
+  <div class="summary">
+
+    <div class="summary-tile">
+      <mat-icon>layers</mat-icon>
+      <div>
+        <strong>{{ revisions().length }}</strong>
+        <span>opération(s)</span>
+      </div>
+    </div>
+
+    <div class="summary-tile">
+      <mat-icon>groups</mat-icon>
+      <div>
+        <strong>{{ contributors() }}</strong>
+        <span>utilisateur(s)</span>
+      </div>
+    </div>
+
+    <div class="summary-tile">
+      <mat-icon>person_add</mat-icon>
+      <div>
+        <strong>{{ creation()?.username ?? '—' }}</strong>
+        <span>créé par</span>
+      </div>
+    </div>
+
+    <div class="summary-tile">
+      <mat-icon>update</mat-icon>
+      <div>
+        <strong>{{ latest()?.username }}</strong>
+        <span>{{ latest()?.date | date: 'dd/MM/yyyy HH:mm' }}</span>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="toolbar">
+    <mat-slide-toggle
+      [checked]="onlyChanges()"
+      (change)="onlyChanges.set($event.checked)">
+      Afficher uniquement les champs modifiés
+    </mat-slide-toggle>
+  </div>
+
+  <!-- TIMELINE -->
+  <ol class="timeline">
+
+    @for (revision of revisions(); track revision.revision) {
+
+      <li class="revision kind-{{ revision.kind }}">
+
+        <span class="dot">
+          <mat-icon>{{ icon(revision.kind) }}</mat-icon>
+        </span>
+
+        <article class="card">
+
+          <header class="card-head">
+
+            <div class="head-left">
+              <span class="badge badge-{{ revision.kind }}">
+                {{ revision.kindLabel }}
+              </span>
+              <span class="revision-number">Révision #{{ revision.revision }}</span>
+            </div>
+
+            <div class="head-right">
+
+              <span class="author" title="Auteur de l’opération">
+                <span class="avatar">{{ initials(revision.username) }}</span>
+                <span>
+                  <small>{{ revision.kind === 'created' ? 'Créé par' : revision.kind === 'deleted' ? 'Supprimé par' : 'Modifié par' }}</small>
+                  <strong>{{ revision.username }}</strong>
+                </span>
+              </span>
+
+              <span class="date">
+                <mat-icon>schedule</mat-icon>
+                {{ revision.date | date: 'dd/MM/yyyy HH:mm:ss' }}
+              </span>
+
+            </div>
+
+          </header>
+
+          @if (visibleChanges(revision).length === 0) {
+
+            <p class="no-change">
+              Aucun champ suivi n’a changé lors de cette opération.
+            </p>
+
+          } @else {
+
+            <div class="table-wrap">
+              <table>
+
+                <thead>
+                  <tr>
+                    <th>Champ</th>
+
+                    @switch (revision.kind) {
+                      @case ('updated') {
+                        <th>Ancienne valeur</th>
+                        <th>Nouvelle valeur</th>
+                      }
+                      @case ('deleted') {
+                        <th>Valeur supprimée</th>
+                      }
+                      @default {
+                        <th>Valeur</th>
+                      }
+                    }
+                  </tr>
+                </thead>
+
+                <tbody>
+                  @for (change of visibleChanges(revision); track change.label) {
+
+                    <tr [class.is-changed]="change.changed">
+
+                      <td class="field">{{ change.label }}</td>
+
+                      @switch (revision.kind) {
+
+                        @case ('updated') {
+                          <td>
+                            <span class="value" [class.old]="change.changed">
+                              {{ change.before }}
+                            </span>
+                          </td>
+                          <td>
+                            <span class="value" [class.new]="change.changed">
+                              {{ change.after }}
+                            </span>
+                          </td>
+                        }
+
+                        @case ('deleted') {
+                          <td><span class="value old">{{ change.before }}</span></td>
+                        }
+
+                        @default {
+                          <td><span class="value">{{ change.after }}</span></td>
+                        }
+
+                      }
+
+                    </tr>
+
+                  }
+                </tbody>
+
+              </table>
+            </div>
+
+          }
+
+        </article>
+
+      </li>
+
+    }
+
+  </ol>
+
+}

@@ -1,4 +1,3 @@
-
 package com.kacheche.entity;
 
 import com.kacheche.enums.ExpenseStatus;
@@ -16,11 +15,7 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "expenses")
 @Audited
-public class Expense {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Expense extends BaseEntity {
 
     @NotBlank
     @Size(min = 3, max = 150)
@@ -59,7 +54,6 @@ public class Expense {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
-
         if (status == null) {
             status = ExpenseStatus.PENDING;
         }
@@ -70,67 +64,24 @@ public class Expense {
         updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() {
-        return id;
-    }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    public BigDecimal getAmount() { return amount; }
+    public void setAmount(BigDecimal amount) { this.amount = amount; }
 
-    public String getDescription() {
-        return description;
-    }
+    public LocalDate getExpenseDate() { return expenseDate; }
+    public void setExpenseDate(LocalDate expenseDate) { this.expenseDate = expenseDate; }
 
-    public void setDescription(String description) {
-        this.description = description;
-    }
+    public ExpenseStatus getStatus() { return status; }
+    public void setStatus(ExpenseStatus status) { this.status = status; }
 
-    public BigDecimal getAmount() {
-        return amount;
-    }
+    public String getRejectionReason() { return rejectionReason; }
+    public void setRejectionReason(String rejectionReason) { this.rejectionReason = rejectionReason; }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
 
-    public LocalDate getExpenseDate() {
-        return expenseDate;
-    }
-
-    public void setExpenseDate(LocalDate expenseDate) {
-        this.expenseDate = expenseDate;
-    }
-
-    public ExpenseStatus getStatus() {
-        return status;
-    }
-
-    public void setStatus(ExpenseStatus status) {
-        this.status = status;
-    }
-
-    public String getRejectionReason() {
-        return rejectionReason;
-    }
-
-    public void setRejectionReason(String rejectionReason) {
-        this.rejectionReason = rejectionReason;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public LocalDateTime getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public Budget getBudget() {
-        return budget;
-    }
-
-    public void setBudget(Budget budget) {
-        this.budget = budget;
-    }
+    public Budget getBudget() { return budget; }
+    public void setBudget(Budget budget) { this.budget = budget; }
 }

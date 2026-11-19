@@ -1,4 +1,3 @@
-
 package com.kacheche.dto;
 
 import jakarta.validation.constraints.*;
@@ -31,6 +30,9 @@ public record BudgetRequest(
 
         @NotNull(message = "Le département est obligatoire.")
         @Positive(message = "L'identifiant du département doit être positif.")
-        Long departmentId
+        Long departmentId,
 
-) {}
+        Long version
+
+) implements VersionedRequest {
+}

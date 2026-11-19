@@ -1,18 +1,14 @@
-
 package com.kacheche.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import org.hibernate.envers.Audited;
+
+import java.math.BigDecimal;
 
 @Audited
 @Entity
 @Table(name = "budgets")
-public class Budget {
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+public class Budget extends BaseEntity {
 
     @Column(nullable = false, length = 150)
     private String name;
@@ -20,12 +16,7 @@ public class Budget {
     @Column(name = "fiscal_year", nullable = false)
     private Integer fiscalYear;
 
-    @Column(
-            name = "total_amount",
-            nullable = false,
-            precision = 19,
-            scale = 2
-    )
+    @Column(name = "total_amount", nullable = false, precision = 19, scale = 2)
     private BigDecimal totalAmount;
 
     @Column(nullable = false, length = 3)
@@ -38,13 +29,12 @@ public class Budget {
     public Budget() {
     }
 
-    public Budget(
-            String name,
-            Integer fiscalYear,
-            BigDecimal totalAmount,
-            String currency,
-            Department department) {
+    public Budget(Long id) {
+        setId(id);
+    }
 
+    public Budget(String name, Integer fiscalYear, BigDecimal totalAmount,
+                  String currency, Department department) {
         this.name = name;
         this.fiscalYear = fiscalYear;
         this.totalAmount = totalAmount;
@@ -52,47 +42,18 @@ public class Budget {
         this.department = department;
     }
 
-    public Long getId() {
-        return id;
-    }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-    public String getName() {
-        return name;
-    }
+    public Integer getFiscalYear() { return fiscalYear; }
+    public void setFiscalYear(Integer fiscalYear) { this.fiscalYear = fiscalYear; }
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    public BigDecimal getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(BigDecimal totalAmount) { this.totalAmount = totalAmount; }
 
-    public Integer getFiscalYear() {
-        return fiscalYear;
-    }
+    public String getCurrency() { return currency; }
+    public void setCurrency(String currency) { this.currency = currency; }
 
-    public void setFiscalYear(Integer fiscalYear) {
-        this.fiscalYear = fiscalYear;
-    }
-
-    public BigDecimal getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(BigDecimal totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public String getCurrency() {
-        return currency;
-    }
-
-    public void setCurrency(String currency) {
-        this.currency = currency;
-    }
-
-    public Department getDepartment() {
-        return department;
-    }
-
-    public void setDepartment(Department department) {
-        this.department = department;
-    }
+    public Department getDepartment() { return department; }
+    public void setDepartment(Department department) { this.department = department; }
 }

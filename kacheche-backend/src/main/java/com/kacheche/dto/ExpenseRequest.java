@@ -1,4 +1,3 @@
-
 package com.kacheche.dto;
 
 import jakarta.validation.constraints.DecimalMin;
@@ -30,6 +29,9 @@ public record ExpenseRequest(
 
         @NotNull(message = "Le budget est obligatoire")
         @Positive(message = "L'identifiant du budget doit être positif")
-        Long budgetId
+        Long budgetId,
 
-) {}
+        Long version
+
+) implements VersionedRequest {
+}

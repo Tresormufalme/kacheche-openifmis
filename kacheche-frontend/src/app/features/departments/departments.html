@@ -1,27 +1,28 @@
+<div class="k-page">
 
-<div class="departments-page">
-
-  <div class="page-header">
+  <header class="k-header">
 
     <div>
+      <span class="k-eyebrow">Organisation</span>
       <h1>Gestion des départements</h1>
       <p>Consultez et gérez les départements enregistrés dans Kacheche.</p>
     </div>
 
-    <div class="header-actions">
+    <div class="k-header-actions">
 
       <button
         mat-stroked-button
-        (click)="loadDepartments()"
-        [disabled]="isLoading">
+        type="button"
+        (click)="load()"
+        [disabled]="isLoading()">
         <mat-icon>refresh</mat-icon>
         Actualiser
       </button>
 
-      @if (isAdmin()) {
+      @if (isAdmin) {
         <button
           mat-flat-button
-          color="primary"
+          type="button"
           (click)="openCreateForm()">
           <mat-icon>add</mat-icon>
           Nouveau département
@@ -30,155 +31,141 @@
 
     </div>
 
-  </div>
+  </header>
 
-  @if (successMessage) {
-    <div class="success-message">
+  @if (successMessage()) {
+    <div class="k-alert k-alert-success" role="status">
       <mat-icon>check_circle</mat-icon>
-      {{ successMessage }}
+      <span>{{ successMessage() }}</span>
+      <button mat-icon-button type="button" aria-label="Fermer" (click)="successMessage.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
   }
 
-  @if (errorMessage) {
-    <div class="error-container">
+  @if (errorMessage()) {
+    <div class="k-alert k-alert-error" role="alert">
       <mat-icon>error_outline</mat-icon>
-      {{ errorMessage }}
+      <span>{{ errorMessage() }}</span>
+      <button mat-icon-button type="button" aria-label="Fermer" (click)="errorMessage.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
     </div>
   }
 
-  @if (showForm) {
-
-    <mat-card class="form-card">
-
-      <mat-card-content>
-
-        <app-department-form
-          [department]="selectedDepartment"
-          (saved)="onDepartmentSaved()"
-          (cancelled)="closeForm()">
-        </app-department-form>
-
-      </mat-card-content>
-
-    </mat-card>
-
+  @if (showForm() && isAdmin) {
+    <section class="k-panel k-form-panel">
+      <app-department-form
+        [entity]="selected()"
+        (saved)="onSaved()"
+        (cancelled)="closeForm()"
+        (conflict)="onConflict($event)" />
+    </section>
   }
 
-  <mat-card class="departments-card">
+  <section class="k-panel">
 
-    <mat-card-header>
-      <mat-card-title>Liste des départements</mat-card-title>
-      <mat-card-subtitle>
-        Données récupérées depuis le serveur
-      </mat-card-subtitle>
-    </mat-card-header>
+    <div class="k-panel-head">
+      <div>
+        <h2>Liste des départements</h2>
+        <p>{{ items().length }} département(s) enregistré(s)</p>
+      </div>
+    </div>
 
-    <mat-card-content>
+    @if (isLoading()) {
 
-      @if (isLoading) {
+      <div class="k-state">
+        <mat-spinner diameter="42"></mat-spinner>
+        <p>Chargement des départements...</p>
+      </div>
 
-        <div class="loading-container">
-          <mat-spinner diameter="42"></mat-spinner>
-          <p>Chargement des départements...</p>
-        </div>
+    } @else if (items().length === 0) {
 
-      } @else if (departments.length === 0) {
+      <div class="k-state">
+        <mat-icon>domain_disabled</mat-icon>
+        <h3>Aucun département enregistré</h3>
+        <p>Les départements ajoutés apparaîtront ici.</p>
+      </div>
 
-        <div class="empty-container">
-          <mat-icon>domain_disabled</mat-icon>
-          <h3>Aucun département enregistré</h3>
-          <p>Les départements ajoutés apparaîtront ici.</p>
-        </div>
+    } @else {
 
-      } @else {
+      <div class="k-table-wrap">
+        <table class="k-table">
 
-        <div class="table-container">
-
-          <table mat-table [dataSource]="departments">
-
-            <ng-container matColumnDef="id">
-              <th mat-header-cell *matHeaderCellDef>ID</th>
-              <td mat-cell *matCellDef="let department">
-                {{ department.id }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="name">
-              <th mat-header-cell *matHeaderCellDef>Nom</th>
-              <td mat-cell *matCellDef="let department">
-                <strong>{{ department.name }}</strong>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="code">
-              <th mat-header-cell *matHeaderCellDef>Code</th>
-              <td mat-cell *matCellDef="let department">
-                <span class="department-code">
-                  {{ department.code }}
-                </span>
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="description">
-              <th mat-header-cell *matHeaderCellDef>Description</th>
-              <td mat-cell *matCellDef="let department">
-                {{ department.description || 'Aucune description' }}
-              </td>
-            </ng-container>
-
-            <ng-container matColumnDef="actions">
-              <th mat-header-cell *matHeaderCellDef>Actions</th>
-
-              <td mat-cell *matCellDef="let department">
-
-                @if (isAdmin()) {
-
-                  <button
-                    mat-icon-button
-                    color="primary"
-                    aria-label="Modifier le département"
-                    (click)="openEditForm(department)">
-                    <mat-icon>edit</mat-icon>
-                  </button>
-
-                  <button
-                    mat-icon-button
-                    color="warn"
-                    aria-label="Supprimer le département"
-                    (click)="deleteDepartment(department)">
-                    <mat-icon>delete</mat-icon>
-                  </button>
-
-                } @else {
-                  <span class="readonly-label">Lecture seule</span>
-                }
-
-              </td>
-            </ng-container>
-
-            <tr
-              mat-header-row
-              *matHeaderRowDef="displayedColumns">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nom</th>
+              <th>Code</th>
+              <th>Description</th>
+              <th>Actions</th>
             </tr>
+          </thead>
 
-            <tr
-              mat-row
-              *matRowDef="let row; columns: displayedColumns">
-            </tr>
+          <tbody>
+            @for (department of items(); track department.id) {
+              <tr>
 
-          </table>
+                <td><span class="k-id">#{{ department.id }}</span></td>
 
-        </div>
+                <td><strong>{{ department.name }}</strong></td>
 
-        <div class="table-footer">
-          {{ departments.length }}
-          département(s) enregistré(s)
-        </div>
+                <td><span class="k-chip">{{ department.code }}</span></td>
 
-      }
+                <td>
+                  @if (department.description) {
+                    {{ department.description }}
+                  } @else {
+                    <span class="k-muted">Aucune description</span>
+                  }
+                </td>
 
-    </mat-card-content>
+                <td>
+                  <div class="k-actions">
 
-  </mat-card>
+                    @if (isAdmin) {
+
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-edit"
+                        matTooltip="Modifier"
+                        aria-label="Modifier le département"
+                        (click)="openEditForm(department)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+
+                      <app-audit-button
+                        entity="departments"
+                        [entityId]="department.id"
+                        [label]="department.name" />
+
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-delete"
+                        matTooltip="Supprimer"
+                        aria-label="Supprimer le département"
+                        (click)="remove(department)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+
+                    } @else {
+                      <span class="k-readonly">Lecture seule</span>
+                    }
+
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+
+        </table>
+      </div>
+
+    }
+
+  </section>
 
 </div>

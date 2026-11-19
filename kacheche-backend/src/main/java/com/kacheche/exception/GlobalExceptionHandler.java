@@ -1,84 +1,58 @@
-
 package com.kacheche.exception;
 
 import jakarta.servlet.http.HttpServletRequest;
 
 import org.springframework.context.support.DefaultMessageSourceResolvable;
-import org.springframework.web.bind.MethodArgumentNotValidException;
-import java.util.stream.Collectors;
-
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    // Gestion des ressources introuvables
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(
-            ResourceNotFoundException exception,
-            HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                404,
-                "Not Found",
-                exception.getMessage(),
-                request.getRequestURI()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.NOT_FOUND)
-                .body(error);
+            ResourceNotFoundException exception, HttpServletRequest request) {
+        return build(HttpStatus.NOT_FOUND, "Not Found", exception.getMessage(), request);
     }
 
-    // Gestion des doublons
     @ExceptionHandler(DuplicateResourceException.class)
     public ResponseEntity<ErrorResponse> handleDuplicate(
-            DuplicateResourceException exception,
-            HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                409,
-                "Conflict",
-                exception.getMessage(),
-                request.getRequestURI()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.CONFLICT)
-                .body(error);
+            DuplicateResourceException exception, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, "Conflict", exception.getMessage(), request);
     }
 
-    // Gestion des autres erreurs de validation métier
+    // Optimistic locking : la ressource a été modifiée par quelqu'un d'autre
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLock(
+            OptimisticLockingFailureException exception, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, "Version Conflict",
+                "Cette ressource a été modifiée par un autre utilisateur. "
+                        + "Rechargez-la puis recommencez.", request);
+    }
+
+    // Transition d'état interdite (ex : approuver une dépense déjà rejetée)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(
+            IllegalStateException exception, HttpServletRequest request) {
+        return build(HttpStatus.CONFLICT, "Conflict", exception.getMessage(), request);
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleBadRequest(
-            IllegalArgumentException exception,
-            HttpServletRequest request) {
-
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                400,
-                "Bad Request",
-                exception.getMessage(),
-                request.getRequestURI()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+            IllegalArgumentException exception, HttpServletRequest request) {
+        return build(HttpStatus.BAD_REQUEST, "Bad Request", exception.getMessage(), request);
     }
 
-//validation de donnees
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(
-            MethodArgumentNotValidException exception,
-            HttpServletRequest request) {
+            MethodArgumentNotValidException exception, HttpServletRequest request) {
 
         String message = exception.getBindingResult()
                 .getFieldErrors()
@@ -86,21 +60,18 @@ public class GlobalExceptionHandler {
                 .map(DefaultMessageSourceResolvable::getDefaultMessage)
                 .collect(Collectors.joining("; "));
 
-        ErrorResponse error = new ErrorResponse(
-                LocalDateTime.now(),
-                400,
-                "Validation Failed",
-                message,
-                request.getRequestURI()
-        );
-
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(error);
+        return build(HttpStatus.BAD_REQUEST, "Validation Failed", message, request);
     }
 
+    private ResponseEntity<ErrorResponse> build(
+            HttpStatus status, String error, String message, HttpServletRequest request) {
 
-    // Format commun des réponses d'erreur
+        ErrorResponse body = new ErrorResponse(
+                LocalDateTime.now(), status.value(), error, message, request.getRequestURI());
+
+        return ResponseEntity.status(status).body(body);
+    }
+
     public record ErrorResponse(
             LocalDateTime timestamp,
             int status,

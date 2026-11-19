@@ -8,6 +8,7 @@ public record BudgetResponse(
         Integer fiscalYear,
         BigDecimal totalAmount,
         String currency,
-        DepartmentSummaryResponse department
+        DepartmentSummaryResponse department,
+        Long version
 ) {
 }

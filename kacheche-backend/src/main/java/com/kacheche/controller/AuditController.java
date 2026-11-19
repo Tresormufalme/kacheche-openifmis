@@ -1,15 +1,16 @@
-
 package com.kacheche.controller;
 
-import com.kacheche.dto.BudgetAuditResponse;
-import com.kacheche.dto.ExpenseAuditResponse;
-import com.kacheche.service.AuditService;
-
+import com.kacheche.audit.AuditQuery;
+import com.kacheche.dto.AuditResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Un seul contrôleur d'audit pour toutes les entités :
+ * GET /api/audit/departments/1, /api/audit/budgets/1, /api/audit/expenses/1 ...
+ */
 @RestController
 @RequestMapping("/api/audit")
 @CrossOrigin(
@@ -18,39 +19,21 @@ import java.util.List;
 )
 public class AuditController {
 
-    private final AuditService auditService;
+    private final AuditQuery auditQuery;
 
-    public AuditController(AuditService auditService) {
-        this.auditService = auditService;
+    public AuditController(AuditQuery auditQuery) {
+        this.auditQuery = auditQuery;
     }
 
-    @GetMapping("/budgets/{budgetId}")
-    public ResponseEntity<List<BudgetAuditResponse>> getBudgetHistory(
-            @PathVariable Long budgetId) {
+    @GetMapping("/{entity}/{id}")
+    public ResponseEntity<List<AuditResponse>> getHistory(
+            @PathVariable String entity,
+            @PathVariable Long id) {
 
-        if (budgetId == null || budgetId <= 0) {
-            throw new IllegalArgumentException(
-                    "L'identifiant du budget doit être positif."
-            );
+        if (id == null || id <= 0) {
+            throw new IllegalArgumentException("L'identifiant doit être positif.");
         }
 
-        return ResponseEntity.ok(
-                auditService.getBudgetHistory(budgetId)
-        );
-    }
-
-    @GetMapping("/expenses/{expenseId}")
-    public ResponseEntity<List<ExpenseAuditResponse>> getExpenseHistory(
-            @PathVariable Long expenseId) {
-
-        if (expenseId == null || expenseId <= 0) {
-            throw new IllegalArgumentException(
-                    "L'identifiant de la dépense doit être positif."
-            );
-        }
-
-        return ResponseEntity.ok(
-                auditService.getExpenseHistory(expenseId)
-        );
+        return ResponseEntity.ok(auditQuery.getHistory(entity, id));
     }
 }

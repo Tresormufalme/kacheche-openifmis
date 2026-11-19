@@ -1,0 +1,32 @@
+<div class="audit-dialog-header">
+
+  <div class="audit-dialog-icon">
+    <mat-icon>history</mat-icon>
+  </div>
+
+  <div class="audit-dialog-title">
+    <span class="eyebrow">
+      Audit trail · {{ config.singular }} #{{ data.entityId }}
+    </span>
+    <h2 mat-dialog-title>{{ data.title }}</h2>
+  </div>
+
+  <button
+    mat-icon-button
+    type="button"
+    mat-dialog-close
+    aria-label="Fermer">
+    <mat-icon>close</mat-icon>
+  </button>
+
+</div>
+
+<mat-dialog-content class="audit-dialog-content">
+  <app-audit-timeline
+    [entity]="data.entity"
+    [entityId]="data.entityId" />
+</mat-dialog-content>
+
+<mat-dialog-actions align="end" class="audit-dialog-actions">
+  <button mat-flat-button type="button" mat-dialog-close>Fermer</button>
+</mat-dialog-actions>
