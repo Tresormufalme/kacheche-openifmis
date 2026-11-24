@@ -40,6 +40,8 @@ export class Budgets extends BaseCrudPage<Budget, BudgetRequest> implements OnIn
   protected override readonly service = inject(BudgetService);
   private readonly departmentService = inject(DepartmentService);
 
+  protected override readonly resource = 'BUDGET';
+
   protected override readonly text: CrudPageText = {
     loadFailed: 'Impossible de charger les budgets.',
     created: 'Le budget a été créé avec succès.',

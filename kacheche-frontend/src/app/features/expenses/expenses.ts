@@ -41,6 +41,8 @@ export class Expenses extends BaseCrudPage<Expense, ExpenseRequest> {
 
   protected override readonly service = inject(ExpenseService);
 
+  protected override readonly resource = 'EXPENSE';
+
   protected override readonly text: CrudPageText = {
     loadFailed: 'Impossible de charger les dépenses. Vérifiez votre connexion.',
     created: 'La dépense a été créée avec succès.',
@@ -82,9 +84,17 @@ export class Expenses extends BaseCrudPage<Expense, ExpenseRequest> {
   }
 
   // ---------- WORKFLOW ----------
+  get canApprove(): boolean {
+    return this.authService.hasPermission('EXPENSE_APPROVE');
+  }
+
+  get canReject(): boolean {
+    return this.authService.hasPermission('EXPENSE_REJECT');
+  }
+
   approve(expense: Expense): void {
 
-    if (!this.isAdmin || expense.status !== 'PENDING') {
+    if (!this.canApprove || expense.status !== 'PENDING') {
       return;
     }
 
@@ -114,7 +124,7 @@ export class Expenses extends BaseCrudPage<Expense, ExpenseRequest> {
 
   reject(expense: Expense): void {
 
-    if (!this.isAdmin || expense.status !== 'PENDING') {
+    if (!this.canReject || expense.status !== 'PENDING') {
       return;
     }
 

@@ -157,23 +157,67 @@
 
                         @case ('updated') {
                           <td>
-                            <span class="value" [class.old]="change.changed">
-                              {{ change.before }}
-                            </span>
+                            @if (change.list; as list) {
+                              <div class="chips">
+                                @for (chip of list.before; track chip.label) {
+                                  <span class="chip chip-{{ chip.state }}">{{ chip.label }}</span>
+                                } @empty {
+                                  <span class="value">—</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="value" [class.old]="change.changed">
+                                {{ change.before }}
+                              </span>
+                            }
                           </td>
                           <td>
-                            <span class="value" [class.new]="change.changed">
-                              {{ change.after }}
-                            </span>
+                            @if (change.list; as list) {
+                              <div class="chips">
+                                @for (chip of list.after; track chip.label) {
+                                  <span class="chip chip-{{ chip.state }}">{{ chip.label }}</span>
+                                } @empty {
+                                  <span class="value">—</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="value" [class.new]="change.changed">
+                                {{ change.after }}
+                              </span>
+                            }
                           </td>
                         }
 
                         @case ('deleted') {
-                          <td><span class="value old">{{ change.before }}</span></td>
+                          <td>
+                            @if (change.list; as list) {
+                              <div class="chips">
+                                @for (chip of list.before; track chip.label) {
+                                  <span class="chip chip-removed">{{ chip.label }}</span>
+                                } @empty {
+                                  <span class="value">—</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="value old">{{ change.before }}</span>
+                            }
+                          </td>
                         }
 
                         @default {
-                          <td><span class="value">{{ change.after }}</span></td>
+                          <td>
+                            @if (change.list; as list) {
+                              <div class="chips">
+                                @for (chip of list.after; track chip.label) {
+                                  <span class="chip chip-same">{{ chip.label }}</span>
+                                } @empty {
+                                  <span class="value">—</span>
+                                }
+                              </div>
+                            } @else {
+                              <span class="value">{{ change.after }}</span>
+                            }
+                          </td>
                         }
 
                       }

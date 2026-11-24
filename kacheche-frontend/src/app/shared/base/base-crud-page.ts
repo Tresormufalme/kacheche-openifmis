@@ -35,6 +35,9 @@ export abstract class BaseCrudPage<T extends Versioned, R extends object>
 
   protected abstract readonly service: BaseCrudService<T, R>;
   protected abstract readonly text: CrudPageText;
+
+  // Préfixe des permissions de la ressource : 'DEPARTMENT' -> DEPARTMENT_CREATE...
+  protected abstract readonly resource: string;
   protected abstract deleteMessage(item: T): string;
 
   readonly items = signal<T[]>([]);
@@ -45,8 +48,26 @@ export abstract class BaseCrudPage<T extends Versioned, R extends object>
   readonly showForm = signal(false);
   readonly selected = signal<T | null>(null);
 
-  get isAdmin(): boolean {
-    return this.authService.isAdmin();
+  // ---------- DROITS DE L'UTILISATEUR CONNECTÉ ----------
+  get canCreate(): boolean {
+    return this.can('CREATE');
+  }
+
+  get canUpdate(): boolean {
+    return this.can('UPDATE');
+  }
+
+  get canDelete(): boolean {
+    return this.can('DELETE');
+  }
+
+  // Le bouton Audit exige la permission AUDIT_READ.
+  get canAudit(): boolean {
+    return this.authService.hasPermission('AUDIT_READ');
+  }
+
+  protected can(action: 'READ' | 'CREATE' | 'UPDATE' | 'DELETE'): boolean {
+    return this.authService.hasPermission(`${this.resource}_${action}`);
   }
 
   ngOnInit(): void {
@@ -118,7 +139,7 @@ export abstract class BaseCrudPage<T extends Versioned, R extends object>
 
   remove(item: T): void {
 
-    if (!this.isAdmin) {
+    if (!this.canDelete) {
       return;
     }
 

@@ -145,3 +145,21 @@ mat-card-subtitle {
     padding: 22px 14px;
   }
 }
+
+
+.info-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 11px 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  color: #1e40af;
+  background: #eff6ff;
+  font-size: 14px;
+
+  mat-icon {
+    flex: 0 0 auto;
+  }
+}

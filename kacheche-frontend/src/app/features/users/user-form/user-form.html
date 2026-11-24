@@ -1,0 +1,154 @@
+<div class="k-form">
+
+  <h2>{{ isEditMode ? 'Modifier l’utilisateur' : 'Nouvel utilisateur' }}</h2>
+
+  <p class="k-form-intro">
+    {{ isEditMode
+      ? 'Le nom d’utilisateur ne peut pas être modifié. Utilisez « Réinitialiser le mot de passe » dans la liste pour changer le mot de passe.'
+      : 'Le compte sera créé avec un mot de passe provisoire à changer à la première connexion.' }}
+  </p>
+
+  @if (errorMessage()) {
+    <div class="k-form-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+
+    <div class="k-form-row">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Nom d’utilisateur</mat-label>
+        <input
+          matInput
+          formControlName="username"
+          maxlength="50"
+          autocomplete="off"
+          placeholder="Ex. jdupont" />
+
+        @if (form.controls.username.hasError('required')) {
+          <mat-error>Le nom d’utilisateur est obligatoire.</mat-error>
+        } @else if (form.controls.username.hasError('minlength')) {
+          <mat-error>Minimum 3 caractères.</mat-error>
+        } @else if (form.controls.username.hasError('pattern')) {
+          <mat-error>Lettres, chiffres, points, tirets et underscores uniquement.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Nom complet</mat-label>
+        <input matInput formControlName="fullName" maxlength="150" />
+      </mat-form-field>
+
+    </div>
+
+    <div class="k-form-row">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Adresse e-mail</mat-label>
+        <input matInput type="email" formControlName="email" maxlength="150" />
+
+        @if (form.controls.email.hasError('email')) {
+          <mat-error>Adresse e-mail invalide.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Rôles</mat-label>
+
+        <mat-select formControlName="roleIds" multiple>
+          @for (role of roles(); track role.id) {
+            <mat-option [value]="role.id">{{ role.name }}</mat-option>
+          }
+        </mat-select>
+
+        @if (isLoadingRoles()) {
+          <mat-hint>Chargement des rôles...</mat-hint>
+        }
+
+        @if (form.controls.roleIds.invalid) {
+          <mat-error>Choisissez au moins un rôle.</mat-error>
+        }
+      </mat-form-field>
+
+    </div>
+
+    @if (!isEditMode) {
+      <mat-form-field appearance="outline">
+        <mat-label>Mot de passe provisoire</mat-label>
+
+        <input
+          matInput
+          [type]="showPassword() ? 'text' : 'password'"
+          formControlName="password"
+          autocomplete="new-password" />
+
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          aria-label="Générer un mot de passe"
+          (click)="generate()">
+          <mat-icon>auto_fix_high</mat-icon>
+        </button>
+
+        <button
+          mat-icon-button
+          matSuffix
+          type="button"
+          [attr.aria-label]="showPassword() ? 'Masquer' : 'Afficher'"
+          (click)="showPassword.set(!showPassword())">
+          <mat-icon>{{ showPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+        </button>
+
+        <mat-hint>{{ passwordHint }}</mat-hint>
+
+        @if (form.controls.password.invalid) {
+          <mat-error>{{ passwordHint }}</mat-error>
+        }
+      </mat-form-field>
+    }
+
+    <div class="toggle">
+      <mat-slide-toggle formControlName="enabled">
+        Compte actif
+      </mat-slide-toggle>
+      <small>Un compte désactivé ne peut plus se connecter.</small>
+    </div>
+
+    <div class="k-form-actions">
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="cancel()"
+        [disabled]="isSaving()">
+        Annuler
+      </button>
+
+      <button
+        mat-flat-button
+        type="submit"
+        [disabled]="isSaving() || isLoadingRoles() || roles().length === 0">
+
+        @if (isSaving()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        }
+
+        @if (!isSaving()) {
+          <mat-icon>save</mat-icon>
+        }
+
+        {{ isSaving()
+          ? 'Enregistrement...'
+          : (isEditMode ? 'Enregistrer les modifications' : 'Créer l’utilisateur') }}
+
+      </button>
+
+    </div>
+
+  </form>
+
+</div>

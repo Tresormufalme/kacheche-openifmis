@@ -52,7 +52,7 @@
 
             <input
               matInput
-              [type]="hidePassword ? 'password' : 'text'"
+              [type]="hidePassword() ? 'password' : 'text'"
               formControlName="password"
               placeholder="Votre mot de passe"
               autocomplete="current-password"
@@ -62,11 +62,11 @@
               mat-icon-button
               matSuffix
               type="button"
-              (click)="hidePassword = !hidePassword"
-              [attr.aria-label]="hidePassword ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
+              (click)="hidePassword.set(!hidePassword())"
+              [attr.aria-label]="hidePassword() ? 'Afficher le mot de passe' : 'Masquer le mot de passe'"
             >
               <mat-icon>
-                {{ hidePassword ? 'visibility' : 'visibility_off' }}
+                {{ hidePassword() ? 'visibility' : 'visibility_off' }}
               </mat-icon>
             </button>
 
@@ -76,10 +76,17 @@
             }
           </mat-form-field>
 
-          @if (errorMessage) {
-            <div class="error-message">
+          @if (infoMessage()) {
+            <div class="info-message" role="status">
+              <mat-icon>info</mat-icon>
+              <span>{{ infoMessage() }}</span>
+            </div>
+          }
+
+          @if (errorMessage()) {
+            <div class="error-message" role="alert">
               <mat-icon>error_outline</mat-icon>
-              <span>{{ errorMessage }}</span>
+              <span>{{ errorMessage() }}</span>
             </div>
           }
 
@@ -88,10 +95,10 @@
             color="primary"
             type="submit"
             class="login-button"
-            [disabled]="isLoading"
+            [disabled]="isLoading()"
           >
 
-            @if (isLoading) {
+            @if (isLoading()) {
               <mat-spinner diameter="22"></mat-spinner>
             } @else {
               <span class="btn-text">

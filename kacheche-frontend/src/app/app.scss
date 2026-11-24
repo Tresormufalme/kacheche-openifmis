@@ -604,3 +604,25 @@
 .sidebar-footer span {
   color: #a9bad0 !important;
 }
+
+
+/* ---------- Profil utilisateur cliquable (menu du compte) ---------- */
+.user-profile-button {
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 12px;
+  padding: 4px 8px;
+  transition: background 0.15s ease;
+
+  &:hover {
+    background: rgba(40, 120, 199, 0.08);
+  }
+
+  .user-caret {
+    margin-left: 4px;
+    color: #94a3b8;
+  }
+}

@@ -292,6 +292,34 @@ td {
   }
 }
 
+/* ---------- LISTES (rôles, permissions) ---------- */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 2px 9px;
+  border-radius: 999px;
+  color: #475569;
+  background: #eef2f7;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chip-added {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.chip-removed {
+  color: #b91c1c;
+  background: #fee2e2;
+  text-decoration: line-through;
+  text-decoration-color: rgba(185, 28, 28, 0.55);
+}
+
 .no-change {
   margin: 0;
   padding: 16px;

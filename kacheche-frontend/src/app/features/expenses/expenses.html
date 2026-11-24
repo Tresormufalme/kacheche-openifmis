@@ -19,13 +19,15 @@
         Actualiser
       </button>
 
-      <button
-        mat-flat-button
-        type="button"
-        (click)="openCreateForm()">
-        <mat-icon>add</mat-icon>
-        Nouvelle dépense
-      </button>
+      @if (canCreate) {
+        <button
+          mat-flat-button
+          type="button"
+          (click)="openCreateForm()">
+          <mat-icon>add</mat-icon>
+          Nouvelle dépense
+        </button>
+      }
 
     </div>
 
@@ -101,7 +103,7 @@
 
   </div>
 
-  @if (showForm()) {
+  @if (showForm() && (canCreate || canUpdate)) {
     <section class="k-panel k-form-panel">
       <app-expense-form
         [entity]="selected()"
@@ -209,7 +211,7 @@
                 <td>
                   <div class="k-actions">
 
-                    @if (expense.status === 'PENDING') {
+                    @if (canUpdate && expense.status === 'PENDING') {
                       <button
                         mat-icon-button
                         type="button"
@@ -221,37 +223,38 @@
                       </button>
                     }
 
-                    @if (isAdmin) {
+                    @if (canApprove && expense.status === 'PENDING') {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-approve"
+                        matTooltip="Approuver"
+                        aria-label="Approuver la dépense"
+                        (click)="approve(expense)">
+                        <mat-icon>check_circle</mat-icon>
+                      </button>
+                    }
 
-                      @if (expense.status === 'PENDING') {
+                    @if (canReject && expense.status === 'PENDING') {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-reject"
+                        matTooltip="Rejeter"
+                        aria-label="Rejeter la dépense"
+                        (click)="reject(expense)">
+                        <mat-icon>cancel</mat-icon>
+                      </button>
+                    }
 
-                        <button
-                          mat-icon-button
-                          type="button"
-                          class="k-btn-approve"
-                          matTooltip="Approuver"
-                          aria-label="Approuver la dépense"
-                          (click)="approve(expense)">
-                          <mat-icon>check_circle</mat-icon>
-                        </button>
-
-                        <button
-                          mat-icon-button
-                          type="button"
-                          class="k-btn-reject"
-                          matTooltip="Rejeter"
-                          aria-label="Rejeter la dépense"
-                          (click)="reject(expense)">
-                          <mat-icon>cancel</mat-icon>
-                        </button>
-
-                      }
-
+                    @if (canAudit) {
                       <app-audit-button
                         entity="expenses"
                         [entityId]="expense.id"
                         [label]="expense.description" />
+                    }
 
+                    @if (canDelete) {
                       <button
                         mat-icon-button
                         type="button"
@@ -261,7 +264,6 @@
                         (click)="remove(expense)">
                         <mat-icon>delete</mat-icon>
                       </button>
-
                     }
 
                   </div>

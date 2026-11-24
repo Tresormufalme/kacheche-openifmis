@@ -1,0 +1,211 @@
+<div class="k-page">
+
+  <header class="k-header">
+
+    <div>
+      <span class="k-eyebrow">Administration</span>
+      <h1>Gestion des utilisateurs</h1>
+      <p>Créez les comptes et attribuez-leur des rôles.</p>
+    </div>
+
+    <div class="k-header-actions">
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="load()"
+        [disabled]="isLoading()">
+        <mat-icon>refresh</mat-icon>
+        Actualiser
+      </button>
+
+      @if (canCreate) {
+        <button
+          mat-flat-button
+          type="button"
+          (click)="openCreateForm()">
+          <mat-icon>person_add</mat-icon>
+          Nouvel utilisateur
+        </button>
+      }
+
+    </div>
+
+  </header>
+
+  @if (successMessage()) {
+    <div class="k-alert k-alert-success" role="status">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+      <button mat-icon-button type="button" aria-label="Fermer" (click)="successMessage.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="k-alert k-alert-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+      <button mat-icon-button type="button" aria-label="Fermer" (click)="errorMessage.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (showForm() && (canCreate || canUpdate)) {
+    <section class="k-panel k-form-panel">
+      <app-user-form
+        [entity]="selected()"
+        (saved)="onSaved()"
+        (cancelled)="closeForm()"
+        (conflict)="onConflict($event)" />
+    </section>
+  }
+
+  <section class="k-panel">
+
+    <div class="k-panel-head">
+      <div>
+        <h2>Liste des utilisateurs</h2>
+        <p>{{ items().length }} compte(s)</p>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+
+      <div class="k-state">
+        <mat-spinner diameter="42"></mat-spinner>
+        <p>Chargement des utilisateurs...</p>
+      </div>
+
+    } @else if (items().length === 0) {
+
+      <div class="k-state">
+        <mat-icon>group_off</mat-icon>
+        <h3>Aucun utilisateur</h3>
+        <p>Les comptes créés apparaîtront ici.</p>
+      </div>
+
+    } @else {
+
+      <div class="k-table-wrap">
+        <table class="k-table">
+
+          <thead>
+            <tr>
+              <th>Utilisateur</th>
+              <th>Rôles</th>
+              <th>Statut</th>
+              <th>Dernière connexion</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (user of items(); track user.id) {
+              <tr>
+
+                <td>
+                  <div class="identity">
+                    <span class="avatar">{{ user.username.slice(0, 2).toUpperCase() }}</span>
+                    <div>
+                      <strong>{{ user.fullName || user.username }}</strong>
+                      <small>
+                        {{ user.username }}@if (user.email) { · {{ user.email }}}
+                      </small>
+                    </div>
+                  </div>
+                </td>
+
+                <td>
+                  <div class="chips">
+                    @for (role of user.roles; track role.id) {
+                      <span class="k-chip">{{ role.name }}</span>
+                    }
+                  </div>
+                </td>
+
+                <td>
+                  @if (!user.enabled) {
+                    <span class="status status-off">Désactivé</span>
+                  } @else if (user.locked) {
+                    <span class="status status-locked">Verrouillé</span>
+                  } @else {
+                    <span class="status status-on">Actif</span>
+                  }
+
+                  @if (user.mustChangePassword) {
+                    <small class="temp">Mot de passe provisoire</small>
+                  }
+                </td>
+
+                <td>
+                  @if (user.lastLoginAt) {
+                    {{ user.lastLoginAt | date: 'dd/MM/yyyy HH:mm' }}
+                  } @else {
+                    <span class="k-muted">Jamais connecté</span>
+                  }
+                </td>
+
+                <td>
+                  <div class="k-actions">
+
+                    @if (canUpdate) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-edit"
+                        matTooltip="Modifier"
+                        aria-label="Modifier l’utilisateur"
+                        (click)="openEditForm(user)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                    }
+
+                    @if (canResetPassword) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-reset"
+                        matTooltip="Réinitialiser le mot de passe"
+                        aria-label="Réinitialiser le mot de passe"
+                        (click)="resetPassword(user)">
+                        <mat-icon>lock_reset</mat-icon>
+                      </button>
+                    }
+
+                    @if (canAudit) {
+                      <app-audit-button
+                        entity="users"
+                        [entityId]="user.id"
+                        [label]="user.fullName || user.username" />
+                    }
+
+                    @if (canDelete && !isSelf(user)) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-delete"
+                        matTooltip="Supprimer"
+                        aria-label="Supprimer l’utilisateur"
+                        (click)="remove(user)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+
+        </table>
+      </div>
+
+    }
+
+  </section>
+
+</div>

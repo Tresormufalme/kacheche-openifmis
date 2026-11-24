@@ -1,0 +1,128 @@
+<div class="k-form">
+
+  <h2>{{ isEditMode ? 'Modifier le rôle' : 'Nouveau rôle' }}</h2>
+
+  <p class="k-form-intro">
+    @if (isAdminRole) {
+      Le rôle ADMIN possède toujours toutes les permissions : seule sa description peut être modifiée.
+    } @else {
+      Cochez les actions que ce rôle autorise. Les changements s’appliquent
+      immédiatement aux utilisateurs qui possèdent ce rôle.
+    }
+  </p>
+
+  @if (errorMessage()) {
+    <div class="k-form-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      {{ errorMessage() }}
+    </div>
+  }
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+
+    <div class="k-form-row">
+
+      <mat-form-field appearance="outline">
+        <mat-label>Nom du rôle</mat-label>
+        <input
+          matInput
+          formControlName="name"
+          maxlength="50"
+          placeholder="Ex. GESTIONNAIRE" />
+
+        @if (isSystemRole) {
+          <mat-hint>Un rôle système ne peut pas être renommé.</mat-hint>
+        }
+
+        @if (form.controls.name.hasError('required')) {
+          <mat-error>Le nom est obligatoire.</mat-error>
+        } @else if (form.controls.name.hasError('pattern')) {
+          <mat-error>Lettres, chiffres et underscores uniquement.</mat-error>
+        }
+      </mat-form-field>
+
+      <mat-form-field appearance="outline">
+        <mat-label>Description</mat-label>
+        <input matInput formControlName="description" maxlength="255" />
+      </mat-form-field>
+
+    </div>
+
+    <h3 class="section-title">
+      Permissions
+      <span class="count">{{ selected().size }} sélectionnée(s)</span>
+    </h3>
+
+    @if (isLoadingCatalog()) {
+      <p class="loading">Chargement du catalogue des permissions...</p>
+    }
+
+    <div class="matrix">
+
+      @for (group of groups(); track group.name) {
+
+        <fieldset class="group">
+
+          <legend>
+            <mat-checkbox
+              [checked]="groupState(group) === 'all'"
+              [indeterminate]="groupState(group) === 'some'"
+              [disabled]="isAdminRole"
+              (change)="toggleGroup(group)">
+              {{ group.name }}
+            </mat-checkbox>
+          </legend>
+
+          @for (permission of group.permissions; track permission.code) {
+            <mat-checkbox
+              class="permission"
+              [checked]="isSelected(permission.code)"
+              [disabled]="isAdminRole"
+              (change)="toggle(permission.code)">
+              <span class="permission-label">
+                {{ permission.description }}
+                <small>{{ permission.code }}</small>
+              </span>
+            </mat-checkbox>
+          }
+
+        </fieldset>
+
+      }
+
+    </div>
+
+    <div class="k-form-actions">
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="cancel()"
+        [disabled]="isSaving()">
+        Annuler
+      </button>
+
+      <button
+        mat-flat-button
+        type="submit"
+        [disabled]="isSaving() || isLoadingCatalog()">
+
+        @if (isSaving()) {
+          <mat-spinner diameter="18"></mat-spinner>
+        }
+
+        @if (!isSaving()) {
+          <mat-icon>save</mat-icon>
+        }
+
+        {{ isSaving()
+          ? 'Enregistrement...'
+          : (isEditMode ? 'Enregistrer les modifications' : 'Créer le rôle') }}
+
+      </button>
+
+    </div>
+
+  </form>
+
+</div>

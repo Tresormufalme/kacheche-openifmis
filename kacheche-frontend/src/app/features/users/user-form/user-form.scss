@@ -1,0 +1,15 @@
+:host {
+  display: block;
+}
+
+.toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 4px 0 20px;
+
+  small {
+    color: var(--k-muted);
+    font-size: 12.5px;
+  }
+}

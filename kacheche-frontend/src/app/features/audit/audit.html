@@ -53,7 +53,7 @@
           <mat-select
             [value]="selectedId()"
             (selectionChange)="selectTarget($event.value)"
-            [disabled]="isLoadingTargets()">
+            [disabled]="isLoadingTargets() || !canListCurrent">
 
             <mat-option [value]="null">Sélectionner...</mat-option>
 
@@ -65,6 +65,8 @@
 
           @if (isLoadingTargets()) {
             <mat-hint>Chargement...</mat-hint>
+          } @else if (!canListCurrent) {
+            <mat-hint>Liste non autorisée : saisissez un identifiant.</mat-hint>
           } @else if (targets().length === 0) {
             <mat-hint>Aucun élément disponible.</mat-hint>
           }

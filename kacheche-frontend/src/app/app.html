@@ -1,4 +1,4 @@
-@if (!authService.isAuthenticated() || router.url === '/login') {
+@if (!showShell()) {
 
   <router-outlet />
 
@@ -32,44 +32,18 @@
 
       <mat-nav-list class="navigation-list">
 
-        <a
-          mat-list-item
-          routerLink="/"
-          routerLinkActive="active-link"
-          [routerLinkActiveOptions]="{ exact: true }">
+        @for (item of menu('main'); track item.path) {
+          <a
+            mat-list-item
+            [routerLink]="item.path"
+            routerLinkActive="active-link">
 
-          <mat-icon matListItemIcon>dashboard</mat-icon>
-          <span matListItemTitle>Tableau de bord</span>
-        </a>
+            <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+            <span matListItemTitle>{{ item.label }}</span>
+          </a>
+        }
 
-        <a
-          mat-list-item
-          routerLink="/departments"
-          routerLinkActive="active-link">
-
-          <mat-icon matListItemIcon>business</mat-icon>
-          <span matListItemTitle>Départements</span>
-        </a>
-
-        <a
-          mat-list-item
-          routerLink="/budgets"
-          routerLinkActive="active-link">
-
-          <mat-icon matListItemIcon>account_balance_wallet</mat-icon>
-          <span matListItemTitle>Budgets</span>
-        </a>
-
-        <a
-          mat-list-item
-          routerLink="/expenses"
-          routerLinkActive="active-link">
-
-          <mat-icon matListItemIcon>receipt_long</mat-icon>
-          <span matListItemTitle>Dépenses</span>
-        </a>
-
-        @if (authService.isAdmin()) {
+        @if (menu('control').length > 0) {
 
           <div class="menu-section-divider"></div>
 
@@ -77,21 +51,44 @@
             CONTRÔLE ET SÉCURITÉ
           </div>
 
-          <a
-            mat-list-item
-            routerLink="/audit"
-            routerLinkActive="active-link">
+          @for (item of menu('control'); track item.path) {
+            <a
+              mat-list-item
+              [routerLink]="item.path"
+              routerLinkActive="active-link">
 
-            <mat-icon matListItemIcon>history</mat-icon>
-            <span matListItemTitle>Audit Trails</span>
-          </a>
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
+
+        }
+
+        @if (menu('admin').length > 0) {
+
+          <div class="menu-section-divider"></div>
+
+          <div class="menu-label secondary-label">
+            ADMINISTRATION
+          </div>
+
+          @for (item of menu('admin'); track item.path) {
+            <a
+              mat-list-item
+              [routerLink]="item.path"
+              routerLinkActive="active-link">
+
+              <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+              <span matListItemTitle>{{ item.label }}</span>
+            </a>
+          }
 
         }
 
       </mat-nav-list>
 
       <!-- PIED DU MENU -->
-      <div class="sidebar-footer">
+      <!-- <div class="sidebar-footer">
         <div class="sidebar-footer-icon">
           <mat-icon>verified_user</mat-icon>
         </div>
@@ -102,7 +99,7 @@
         </div>
 
         <div class="version-label">v1.0</div>
-      </div>
+      </div> -->
 
     </mat-sidenav>
 
@@ -135,18 +132,36 @@
           <div class="topbar-divider"></div>
 
           <!-- PROFIL UTILISATEUR -->
-          <div class="user-profile">
+          <button
+            type="button"
+            class="user-profile user-profile-button"
+            [matMenuTriggerFor]="userMenu"
+            aria-label="Menu du compte">
 
             <div class="user-avatar">
               <mat-icon>person</mat-icon>
             </div>
 
             <div class="user-details">
-              <strong>{{ authService.getUsername() }}</strong>
-              <span>{{ authService.getRole() }}</span>
+              <strong>{{ authService.displayName() }}</strong>
+              <span>{{ authService.rolesLabel() }}</span>
             </div>
 
-          </div>
+            <mat-icon class="user-caret">expand_more</mat-icon>
+
+          </button>
+
+          <mat-menu #userMenu="matMenu" xPosition="before">
+            <a mat-menu-item routerLink="/change-password">
+              <mat-icon>password</mat-icon>
+              <span>Changer le mot de passe</span>
+            </a>
+
+            <button mat-menu-item type="button" (click)="logout()">
+              <mat-icon>logout</mat-icon>
+              <span>Déconnexion</span>
+            </button>
+          </mat-menu>
 
           <!-- DECONNEXION -->
           <button

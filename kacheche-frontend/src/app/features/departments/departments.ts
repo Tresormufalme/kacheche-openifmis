@@ -32,6 +32,8 @@ export class Departments extends BaseCrudPage<Department, DepartmentRequest> {
 
   protected override readonly service = inject(DepartmentService);
 
+  protected override readonly resource = 'DEPARTMENT';
+
   protected override readonly text: CrudPageText = {
     loadFailed: 'Impossible de charger les départements depuis le serveur.',
     created: 'Le département a été créé avec succès.',

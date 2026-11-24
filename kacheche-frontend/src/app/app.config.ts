@@ -1,5 +1,7 @@
 import {
   ApplicationConfig,
+  inject,
+  provideAppInitializer,
   provideBrowserGlobalErrorListeners,
   provideZonelessChangeDetection
 } from '@angular/core';
@@ -11,9 +13,12 @@ import {
   withInterceptors
 } from '@angular/common/http';
 
+import { firstValueFrom } from 'rxjs';
+
 import { routes } from './app.routes';
 
 import { authInterceptor } from './core/interceptors/auth.interceptor';
+import { AuthService } from './core/services/auth.service';
 
 export const appConfig: ApplicationConfig = {
 
@@ -29,6 +34,12 @@ export const appConfig: ApplicationConfig = {
       withInterceptors([
         authInterceptor
       ])
+    ),
+
+    // Au démarrage, relit les rôles et permissions actuels de l'utilisateur
+    // (ils ont pu changer depuis sa dernière visite).
+    provideAppInitializer(() =>
+      firstValueFrom(inject(AuthService).restoreSession())
     )
 
   ]

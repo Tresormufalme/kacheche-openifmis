@@ -6,11 +6,19 @@ export const EMPTY_VALUE = '—';
 
 export type AuditKind = 'created' | 'updated' | 'deleted' | 'unknown';
 
+// Élément d'une liste (rôles d'un utilisateur, permissions d'un rôle...)
+export interface AuditChip {
+  label: string;
+  state: 'same' | 'added' | 'removed';
+}
+
 export interface AuditChange {
   label: string;
   before: string;   // ancienne valeur
   after: string;    // nouvelle valeur
   changed: boolean;
+  // Pour les champs de type liste : éléments avec ce qui a été ajouté / retiré
+  list?: { before: AuditChip[]; after: AuditChip[] };
 }
 
 export interface AuditRevision {
@@ -50,6 +58,31 @@ function formatNumber(value: number): string {
   });
 }
 
+// Éléments d'un champ liste, triés (identifiants résolus en noms si possible).
+function listItems(
+  field: AuditFieldDef,
+  entry: AuditEntry | undefined,
+  refs: RefNames
+): string[] {
+
+  const raw = entry ? entry[field.key] : undefined;
+
+  if (!Array.isArray(raw)) {
+    return [];
+  }
+
+  return raw
+    .map(item => {
+      if (field.type === 'refList' && field.refSource) {
+        const name = refs[field.refSource]?.get(Number(item));
+        return name ?? `#${String(item)}`;
+      }
+
+      return String(item);
+    })
+    .sort((a, b) => a.localeCompare(b));
+}
+
 // Met en forme la valeur d'un champ pour l'affichage.
 export function formatAuditValue(
   field: AuditFieldDef,
@@ -67,7 +100,16 @@ export function formatAuditValue(
     return EMPTY_VALUE;
   }
 
+  if (field.type === 'list' || field.type === 'refList') {
+    const items = listItems(field, entry, refs);
+
+    return items.length > 0 ? items.join(', ') : EMPTY_VALUE;
+  }
+
   switch (field.type) {
+
+    case 'boolean':
+      return raw === true || raw === 'true' ? 'Oui' : 'Non';
 
     case 'money': {
       const amount = Number(raw);
@@ -104,6 +146,37 @@ export function formatAuditValue(
     default:
       return String(raw);
   }
+}
+
+// Pour un champ liste : éléments avant / après avec l'état de chacun.
+function buildChips(
+  field: AuditFieldDef,
+  kind: AuditKind,
+  previous: AuditEntry | undefined,
+  current: AuditEntry,
+  refs: RefNames
+): AuditChange['list'] {
+
+  if (field.type !== 'list' && field.type !== 'refList') {
+    return undefined;
+  }
+
+  const before = kind === 'created' ? [] : listItems(field, previous, refs);
+  const after = kind === 'deleted' ? [] : listItems(field, current, refs);
+
+  const beforeSet = new Set(before);
+  const afterSet = new Set(after);
+
+  return {
+    before: before.map(label => ({
+      label,
+      state: kind === 'updated' && !afterSet.has(label) ? 'removed' : 'same'
+    })),
+    after: after.map(label => ({
+      label,
+      state: kind === 'updated' && !beforeSet.has(label) ? 'added' : 'same'
+    }))
+  };
 }
 
 /**
@@ -143,7 +216,8 @@ export function buildAuditTimeline(
         label: field.label,
         before,
         after,
-        changed: before !== after
+        changed: before !== after,
+        list: buildChips(field, kind, lastKnown, entry, refs)
       };
     });
 

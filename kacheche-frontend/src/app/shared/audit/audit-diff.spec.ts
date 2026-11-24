@@ -54,4 +54,37 @@ describe('buildAuditTimeline', () => {
     const dept = timeline[0].changes.find(c => c.label === 'Département')!;
     expect(dept.after).toBe('Finances (#7)');
   });
+
+  it('montre les permissions ajoutées et retirées d’un rôle', () => {
+    const roleFields = AUDIT_ENTITIES['roles'].fields;
+
+    const timeline = buildAuditTimeline([
+      entry({ revision: 1, operation: 'ADD', name: 'GEST', description: null, systemRole: false,
+        permissions: ['BUDGET_READ', 'EXPENSE_READ'] }),
+      entry({ revision: 2, operation: 'MOD', name: 'GEST', description: null, systemRole: false,
+        permissions: ['BUDGET_READ', 'EXPENSE_APPROVE'] })
+    ], roleFields, {});
+
+    const permissions = timeline[0].changes.find(c => c.label === 'Permissions')!;
+
+    expect(permissions.changed).toBe(true);
+    expect(permissions.list!.before.find(c => c.label === 'EXPENSE_READ')!.state).toBe('removed');
+    expect(permissions.list!.after.find(c => c.label === 'EXPENSE_APPROVE')!.state).toBe('added');
+    expect(permissions.list!.after.find(c => c.label === 'BUDGET_READ')!.state).toBe('same');
+  });
+
+  it('résout les noms des rôles d’un utilisateur et affiche Oui/Non', () => {
+    const userFields = AUDIT_ENTITIES['users'].fields;
+
+    const timeline = buildAuditTimeline([
+      entry({ revision: 1, operation: 'ADD', username: 'admin', fullName: 'J', email: null,
+        enabled: true, mustChangePassword: true, roles: [2] })
+    ], userFields, { roles: new Map([[2, 'COMPTABLE']]) });
+
+    const roles = timeline[0].changes.find(c => c.label === 'Rôles')!;
+    const enabled = timeline[0].changes.find(c => c.label === 'Compte actif')!;
+
+    expect(roles.after).toBe('COMPTABLE');
+    expect(enabled.after).toBe('Oui');
+  });
 });

@@ -19,7 +19,7 @@
         Actualiser
       </button>
 
-      @if (isAdmin) {
+      @if (canCreate) {
         <button
           mat-flat-button
           type="button"
@@ -53,7 +53,7 @@
     </div>
   }
 
-  @if (showForm() && isAdmin) {
+  @if (showForm() && (canCreate || canUpdate)) {
     <section class="k-panel k-form-panel">
       <app-department-form
         [entity]="selected()"
@@ -123,8 +123,7 @@
                 <td>
                   <div class="k-actions">
 
-                    @if (isAdmin) {
-
+                    @if (canUpdate) {
                       <button
                         mat-icon-button
                         type="button"
@@ -134,12 +133,16 @@
                         (click)="openEditForm(department)">
                         <mat-icon>edit</mat-icon>
                       </button>
+                    }
 
+                    @if (canAudit) {
                       <app-audit-button
                         entity="departments"
                         [entityId]="department.id"
                         [label]="department.name" />
+                    }
 
+                    @if (canDelete) {
                       <button
                         mat-icon-button
                         type="button"
@@ -149,8 +152,9 @@
                         (click)="remove(department)">
                         <mat-icon>delete</mat-icon>
                       </button>
+                    }
 
-                    } @else {
+                    @if (!canUpdate && !canAudit && !canDelete) {
                       <span class="k-readonly">Lecture seule</span>
                     }
 

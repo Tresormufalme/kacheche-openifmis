@@ -1,0 +1,190 @@
+<div class="k-page">
+
+  <header class="k-header">
+
+    <div>
+      <span class="k-eyebrow">Administration</span>
+      <h1>Rôles et permissions</h1>
+      <p>Un rôle est un ensemble de permissions. Les droits d’un utilisateur sont la somme de ceux de ses rôles.</p>
+    </div>
+
+    <div class="k-header-actions">
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="load()"
+        [disabled]="isLoading()">
+        <mat-icon>refresh</mat-icon>
+        Actualiser
+      </button>
+
+      @if (canCreate) {
+        <button
+          mat-flat-button
+          type="button"
+          (click)="openCreateForm()">
+          <mat-icon>add</mat-icon>
+          Nouveau rôle
+        </button>
+      }
+
+    </div>
+
+  </header>
+
+  @if (successMessage()) {
+    <div class="k-alert k-alert-success" role="status">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ successMessage() }}</span>
+      <button mat-icon-button type="button" aria-label="Fermer" (click)="successMessage.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (errorMessage()) {
+    <div class="k-alert k-alert-error" role="alert">
+      <mat-icon>error_outline</mat-icon>
+      <span>{{ errorMessage() }}</span>
+      <button mat-icon-button type="button" aria-label="Fermer" (click)="errorMessage.set('')">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  }
+
+  @if (showForm() && (canCreate || canUpdate)) {
+    <section class="k-panel k-form-panel">
+      <app-role-form
+        [entity]="selected()"
+        (saved)="onSaved()"
+        (cancelled)="closeForm()"
+        (conflict)="onConflict($event)" />
+    </section>
+  }
+
+  <section class="k-panel">
+
+    <div class="k-panel-head">
+      <div>
+        <h2>Liste des rôles</h2>
+        <p>{{ items().length }} rôle(s)</p>
+      </div>
+    </div>
+
+    @if (isLoading()) {
+
+      <div class="k-state">
+        <mat-spinner diameter="42"></mat-spinner>
+        <p>Chargement des rôles...</p>
+      </div>
+
+    } @else if (items().length === 0) {
+
+      <div class="k-state">
+        <mat-icon>admin_panel_settings</mat-icon>
+        <h3>Aucun rôle</h3>
+        <p>Les rôles créés apparaîtront ici.</p>
+      </div>
+
+    } @else {
+
+      <div class="k-table-wrap">
+        <table class="k-table">
+
+          <thead>
+            <tr>
+              <th>Rôle</th>
+              <th>Description</th>
+              <th>Permissions</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (role of items(); track role.id) {
+              <tr>
+
+                <td>
+                  <strong>{{ role.name }}</strong>
+
+                  @if (role.systemRole) {
+                    <small class="system">Rôle système</small>
+                  }
+                </td>
+
+                <td>
+                  @if (role.description) {
+                    {{ role.description }}
+                  } @else {
+                    <span class="k-muted">—</span>
+                  }
+                </td>
+
+                <td>
+                  <div class="chips">
+                    @for (code of preview(role); track code) {
+                      <span class="perm">{{ code }}</span>
+                    }
+
+                    @if (role.permissions.length > 5) {
+                      <span class="perm perm-more">
+                        +{{ role.permissions.length - 5 }}
+                      </span>
+                    }
+
+                    @if (role.permissions.length === 0) {
+                      <span class="k-muted">Aucune permission</span>
+                    }
+                  </div>
+                </td>
+
+                <td>
+                  <div class="k-actions">
+
+                    @if (canUpdate) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-edit"
+                        matTooltip="Modifier"
+                        aria-label="Modifier le rôle"
+                        (click)="openEditForm(role)">
+                        <mat-icon>edit</mat-icon>
+                      </button>
+                    }
+
+                    @if (canAudit) {
+                      <app-audit-button
+                        entity="roles"
+                        [entityId]="role.id"
+                        [label]="role.name" />
+                    }
+
+                    @if (canDelete && !role.systemRole) {
+                      <button
+                        mat-icon-button
+                        type="button"
+                        class="k-btn-delete"
+                        matTooltip="Supprimer"
+                        aria-label="Supprimer le rôle"
+                        (click)="remove(role)">
+                        <mat-icon>delete</mat-icon>
+                      </button>
+                    }
+
+                  </div>
+                </td>
+
+              </tr>
+            }
+          </tbody>
+
+        </table>
+      </div>
+
+    }
+
+  </section>
+
+</div>

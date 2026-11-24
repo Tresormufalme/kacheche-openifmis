@@ -12,6 +12,9 @@ import { MatSelectModule } from '@angular/material/select';
 import { BudgetService } from '../../core/services/budget.service';
 import { DepartmentService } from '../../core/services/department.service';
 import { ExpenseService } from '../../core/services/expense';
+import { AuthService } from '../../core/services/auth.service';
+import { RoleService } from '../../core/services/role.service';
+import { UserService } from '../../core/services/user.service';
 import { describeError } from '../../core/utils/http-error';
 import { AUDIT_ENTITIES } from '../../shared/audit/audit-config';
 import { AuditTimeline } from '../../shared/components/audit-timeline/audit-timeline';
@@ -47,6 +50,9 @@ export class Audit implements OnInit {
   private readonly departmentService = inject(DepartmentService);
   private readonly budgetService = inject(BudgetService);
   private readonly expenseService = inject(ExpenseService);
+  private readonly userService = inject(UserService);
+  private readonly roleService = inject(RoleService);
+  private readonly authService = inject(AuthService);
 
   // Types d'éléments consultables (issus de la configuration d'audit).
   readonly entities = Object.entries(AUDIT_ENTITIES).map(([key, config]) => ({
@@ -89,6 +95,20 @@ export class Audit implements OnInit {
         id: item.id,
         label: `#${item.id} — ${item.description}`
       })))
+    ),
+
+    users: () => this.userService.getAll().pipe(
+      map(items => items.map(item => ({
+        id: item.id,
+        label: `${item.fullName || item.username} (${item.username})`
+      })))
+    ),
+
+    roles: () => this.roleService.getAll().pipe(
+      map(items => items.map(item => ({
+        id: item.id,
+        label: item.name
+      })))
     )
   };
 
@@ -98,6 +118,13 @@ export class Audit implements OnInit {
 
   get currentConfig() {
     return AUDIT_ENTITIES[this.entity()];
+  }
+
+  // Peut-on LISTER ce type d'éléments ? Sinon, seule la saisie d'un identifiant reste possible.
+  get canListCurrent(): boolean {
+    const permission = this.currentConfig.readPermission;
+
+    return !permission || this.authService.hasPermission(permission);
   }
 
   selectEntity(key: string): void {
@@ -135,7 +162,7 @@ export class Audit implements OnInit {
     this.targets.set([]);
     this.errorMessage.set('');
 
-    if (!loader) {
+    if (!loader || !this.canListCurrent) {
       return;
     }
 
