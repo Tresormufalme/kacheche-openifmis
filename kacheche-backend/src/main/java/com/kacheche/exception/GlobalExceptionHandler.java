@@ -6,6 +6,10 @@ import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.DisabledException;
+import org.springframework.security.authentication.LockedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -15,6 +19,8 @@ import java.util.stream.Collectors;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final String DEFAULT_BAD_CREDENTIALS = "Bad credentials";
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleNotFound(
@@ -37,7 +43,7 @@ public class GlobalExceptionHandler {
                         + "Rechargez-la puis recommencez.", request);
     }
 
-    // Transition d'état interdite (ex : approuver une dépense déjà rejetée)
+    // Transition ou opération interdite (ex : supprimer son propre compte)
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<ErrorResponse> handleIllegalState(
             IllegalStateException exception, HttpServletRequest request) {
@@ -61,6 +67,43 @@ public class GlobalExceptionHandler {
                 .collect(Collectors.joining("; "));
 
         return build(HttpStatus.BAD_REQUEST, "Validation Failed", message, request);
+    }
+
+    // ---------- SÉCURITÉ ----------
+
+    // Identifiants invalides, ou jeton de rafraîchissement invalide
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(
+            BadCredentialsException exception, HttpServletRequest request) {
+
+        String message = DEFAULT_BAD_CREDENTIALS.equals(exception.getMessage())
+                ? "Nom d’utilisateur ou mot de passe incorrect."
+                : exception.getMessage();
+
+        return build(HttpStatus.UNAUTHORIZED, "Unauthorized", message, request);
+    }
+
+    // Trop de tentatives échouées
+    @ExceptionHandler(LockedException.class)
+    public ResponseEntity<ErrorResponse> handleLocked(
+            LockedException exception, HttpServletRequest request) {
+        return build(HttpStatus.LOCKED, "Locked",
+                "Compte temporairement verrouillé suite à trop de tentatives échouées. "
+                        + "Réessayez plus tard ou contactez un administrateur.", request);
+    }
+
+    @ExceptionHandler(DisabledException.class)
+    public ResponseEntity<ErrorResponse> handleDisabled(
+            DisabledException exception, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "Forbidden",
+                "Ce compte est désactivé. Contactez un administrateur.", request);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessDenied(
+            AccessDeniedException exception, HttpServletRequest request) {
+        return build(HttpStatus.FORBIDDEN, "Forbidden",
+                "Vous n’avez pas les permissions nécessaires pour cette action.", request);
     }
 
     private ResponseEntity<ErrorResponse> build(

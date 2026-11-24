@@ -1,170 +1,145 @@
-
 package com.kacheche.config;
 
+import com.kacheche.security.Action;
+import com.kacheche.security.AppUserDetailsService;
+import com.kacheche.security.JwtAuthenticationFilter;
+import com.kacheche.security.JwtService;
+import com.kacheche.security.Permissions;
+import com.kacheche.security.Resource;
+import com.kacheche.security.RestAccessDeniedHandler;
+import com.kacheche.security.RestAuthenticationEntryPoint;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
+/**
+ * Sécurité de l'API : authentification JWT sans session + autorisation RBAC.
+ * Chaque route exige une PERMISSION (jamais un nom de rôle) : les rôles ne sont
+ * que des ensembles de permissions, modifiables en base sans toucher au code.
+ */
 @Configuration
+@EnableMethodSecurity
 public class SecurityConfig {
 
-    // 1. Encoder les mots de passe
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 2. Déclarer les utilisateurs de démonstration
-
+    // Utilise automatiquement AppUserDetailsService + PasswordEncoder.
     @Bean
-    public UserDetailsService userDetailsService(
-            PasswordEncoder passwordEncoder,
-            @Value("${app.security.admin-password}") String adminPassword,
-            @Value("${app.security.comptable-password}") String comptablePassword) {
-
-        UserDetails admin = User.builder()
-                .username("admin")
-                .password(passwordEncoder.encode(adminPassword))
-                .roles("ADMIN")
-                .build();
-
-        UserDetails comptable = User.builder()
-                .username("comptable")
-                .password(passwordEncoder.encode(comptablePassword))
-                .roles("COMPTABLE")
-                .build();
-
-        return new InMemoryUserDetailsManager(admin, comptable);
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration configuration) throws Exception {
+        return configuration.getAuthenticationManager();
     }
 
-    // 3. Définir les règles de sécurité HTTP
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtService jwtService,
+            AppUserDetailsService userDetailsService,
+            RestAuthenticationEntryPoint authenticationEntryPoint,
+            RestAccessDeniedHandler accessDeniedHandler) throws Exception {
+
+        JwtAuthenticationFilter jwtFilter =
+                new JwtAuthenticationFilter(jwtService, userDetailsService);
 
         return http
                 .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable())
+                .csrf(AbstractHttpConfigurer::disable)
+                .httpBasic(AbstractHttpConfigurer::disable)
+                .formLogin(AbstractHttpConfigurer::disable)
+                .logout(AbstractHttpConfigurer::disable)
 
-                .authorizeHttpRequests(auth -> auth
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                        // Autoriser les requêtes OPTIONS pour Angular
-                        .requestMatchers(HttpMethod.OPTIONS, "/**")
-                        .permitAll()
+                .exceptionHandling(handling -> handling
+                        .authenticationEntryPoint(authenticationEntryPoint)
+                        .accessDeniedHandler(accessDeniedHandler))
 
-                        // AUDIT : ADMIN uniquement
-                        .requestMatchers("/api/audit/**")
-                        .hasRole("ADMIN")
+                .authorizeHttpRequests(auth -> {
 
-                        // EXPENSES : consultation pour ADMIN et COMPTABLE
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/expenses/**"
-                        )
-                        .hasAnyRole("ADMIN", "COMPTABLE")
+                    // ---- Routes publiques ----
+                    auth.requestMatchers(HttpMethod.OPTIONS, "/**").permitAll();
+                    auth.requestMatchers("/error").permitAll();
+                    auth.requestMatchers(HttpMethod.POST,
+                            "/api/auth/login",
+                            "/api/auth/refresh",
+                            "/api/auth/logout").permitAll();
 
-                        // EXPENSES : création pour ADMIN et COMPTABLE
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/expenses/**"
-                        )
-                        .hasAnyRole("ADMIN", "COMPTABLE")
+                    // ---- Utilisateur connecté (me, change-password) ----
+                    auth.requestMatchers("/api/auth/**").authenticated();
 
-                        // EXPENSES : modification pour ADMIN et COMPTABLE
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/expenses/**"
-                        )
-                        .hasAnyRole("ADMIN", "COMPTABLE")
+                    // ---- Permissions "métier" ----
+                    auth.requestMatchers("/api/dashboard/**")
+                            .hasAuthority(Permissions.DASHBOARD_READ);
 
-                        // EXPENSES : approbation réservée à ADMIN
-                        .requestMatchers(
-                                HttpMethod.PATCH,
-                                "/api/expenses/*/approve"
-                        )
-                        .hasRole("ADMIN")
+                    auth.requestMatchers("/api/audit/**")
+                            .hasAuthority(Permissions.AUDIT_READ);
 
-                        // EXPENSES : rejet réservé à ADMIN
-                        .requestMatchers(
-                                HttpMethod.PATCH,
-                                "/api/expenses/*/reject"
-                        )
-                        .hasRole("ADMIN")
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/expenses/*/approve")
+                            .hasAuthority(Permissions.EXPENSE_APPROVE);
 
-                        // EXPENSES : suppression réservée à ADMIN
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/expenses/**"
-                        )
-                        .hasRole("ADMIN")
+                    auth.requestMatchers(HttpMethod.PATCH, "/api/expenses/*/reject")
+                            .hasAuthority(Permissions.EXPENSE_REJECT);
 
-                        // CONSULTATION : départements, budgets et dashboard
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/api/departments/**",
-                                "/api/budgets/**",
-                                "/api/dashboard/**"
-                        )
-                        .hasAnyRole("ADMIN", "COMPTABLE")
+                    auth.requestMatchers(HttpMethod.POST, "/api/users/*/reset-password")
+                            .hasAuthority(Permissions.USER_RESET_PASSWORD);
 
-                        // MODIFICATION : départements et budgets
-                        // ADMIN uniquement
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/api/departments/**",
-                                "/api/budgets/**"
-                        )
-                        .hasRole("ADMIN")
+                    // ---- Écrans de gestion des utilisateurs : listes déroulantes ----
+                    auth.requestMatchers(HttpMethod.GET, "/api/roles/**")
+                            .hasAnyAuthority(
+                                    Resource.ROLE.permission(Action.READ),
+                                    Resource.USER.permission(Action.CREATE),
+                                    Resource.USER.permission(Action.UPDATE));
 
-                        .requestMatchers(
-                                HttpMethod.PUT,
-                                "/api/departments/**",
-                                "/api/budgets/**"
-                        )
-                        .hasRole("ADMIN")
+                    auth.requestMatchers(HttpMethod.GET, "/api/permissions/**")
+                            .hasAnyAuthority(
+                                    Resource.ROLE.permission(Action.READ),
+                                    Resource.ROLE.permission(Action.CREATE),
+                                    Resource.ROLE.permission(Action.UPDATE));
 
-                        .requestMatchers(
-                                HttpMethod.DELETE,
-                                "/api/departments/**",
-                                "/api/budgets/**"
-                        )
-                        .hasRole("ADMIN")
+                    // ---- CRUD générique : une règle par ressource et par action ----
+                    for (Resource resource : Resource.values()) {
+                        for (Action action : Action.values()) {
+                            auth.requestMatchers(action.httpMethod(), resource.apiPattern())
+                                    .hasAuthority(resource.permission(action));
+                        }
+                    }
 
-                        // Toutes les autres API nécessitent une authentification
-                        .requestMatchers("/api/**")
-                        .authenticated()
+                    // ---- Refus par défaut ----
+                    // Toute route d'API non déclarée ci-dessus est interdite.
+                    auth.requestMatchers("/api/**").denyAll();
 
-                        // Les autres routes restent accessibles
-                        .anyRequest()
-                        .permitAll()
-                )
+                    auth.anyRequest().authenticated();
+                })
 
-                .httpBasic(Customizer.withDefaults())
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-    // 4. Configuration CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Origines autorisées pour Angular
         configuration.setAllowedOriginPatterns(
                 List.of(
                         "http://localhost:[*]",
@@ -172,27 +147,15 @@ public class SecurityConfig {
                 )
         );
 
-        // Méthodes HTTP autorisées
         configuration.setAllowedMethods(
-                List.of(
-                        "GET",
-                        "POST",
-                        "PUT",
-                        "DELETE",
-                        "PATCH",
-                        "OPTIONS"
-                )
+                List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
         );
 
-        // En-têtes autorisés
         configuration.setAllowedHeaders(List.of("*"));
 
-        // Autoriser les credentials
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source =
-                new UrlBasedCorsConfigurationSource();
-
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
 
         return source;
